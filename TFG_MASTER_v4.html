@@ -704,7 +704,7 @@ function agSt(id,msg,cls){const e=document.getElementById(id);if(!e)return;e.tex
 function agShow(id){const e=document.getElementById(id);if(e)e.classList.remove('ag-hidden');}
 function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag-hidden');}
 function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
-function agDP(r){return `Professional food photography fitness nutrition catalog, ${r.name}. ${r.image_description}. Overhead or 45-degree angle, clean white ceramic bowl centered, soft natural studio lighting, light marble background, vibrant food colors, fresh herb garnish, gold cutlery, no text, no watermarks, ultra sharp 4K.`;}
+function agDP(r){return `Realistic food photograph taken with a DSLR camera, ${r.name}. ${r.image_description||''}. Shot on a real kitchen counter or wooden cutting board, natural window light, slight shadows, real textures visible on the food, imperfect plating like a real home-cooked meal styled for a fitness nutrition blog. The food must look completely real and appetizing, NOT artificial or AI-generated. Real depth of field with slight bokeh background, granite or marble countertop, casual but clean presentation. No text, no watermarks, no logos, no impossible lighting. Photo-realistic, editorial food photography style, 50mm lens, f/2.8, shot from 45-degree angle or slightly overhead.`;}
 
 // Load categories dynamically on recipe tab activation
 async function agLoadCategories(){
