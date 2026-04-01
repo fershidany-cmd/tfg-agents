@@ -16,52 +16,110 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'TFG_SESSION_TOKEN not configured' });
   }
 
-  try {
-    // Fetch categories from admin API
-    const response = await fetch(`${adminUrl}/api/admin/nutrition/categories`, {
-      headers: {
-        'Cookie': `__Secure-next-auth.session-token=${sessionToken}`,
-        'User-Agent': 'TFG-Agent/1.0'
-      }
-    });
+  // Try both cookie names (NextAuth uses __Secure- prefix in production)
+  const cookieVariants = [
+    `__Secure-next-auth.session-token=${sessionToken}; next-auth.session-token=${sessionToken}`,
+  ];
 
-    if (!response.ok) {
-      // Fallback: fetch all recipes and extract unique categories
+  try {
+    // Try fetching all recipes and extract unique categories
+    let recipes = null;
+
+    for (const cookie of cookieVariants) {
+      // Try /api/admin/nutrition first
       const recipesRes = await fetch(`${adminUrl}/api/admin/nutrition`, {
         headers: {
-          'Cookie': `__Secure-next-auth.session-token=${sessionToken}`,
+          'Cookie': cookie,
           'User-Agent': 'TFG-Agent/1.0'
         }
       });
 
-      if (!recipesRes.ok) {
-        return res.status(recipesRes.status).json({ error: 'Failed to fetch from admin API. Session token may be expired.' });
-      }
+      const text = await recipesRes.text();
+      console.log('[list-categories] Status:', recipesRes.status, 'Response preview:', text.substring(0, 300));
 
-      const recipes = await recipesRes.json();
-      const list = Array.isArray(recipes) ? recipes : (recipes.data || []);
+      try {
+        const parsed = JSON.parse(text);
 
-      // Extract unique categories with their UUIDs
-      const catMap = {};
-      for (const r of list) {
-        const catName = r.category_name || '';
-        const catId = r.recipe_category || r.categories || '';
-        if (catName && !catMap[catName]) {
-          catMap[catName] = catId;
+        // Handle wrapped response format: {status, data, message}
+        if (parsed.data && Array.isArray(parsed.data)) {
+          recipes = parsed.data;
+          break;
         }
+        // Handle direct array response
+        if (Array.isArray(parsed)) {
+          recipes = parsed;
+          break;
+        }
+        // Handle {recipes: [...]} format
+        if (parsed.recipes && Array.isArray(parsed.recipes)) {
+          recipes = parsed.recipes;
+          break;
+        }
+
+        // If status is not 200 or got error, log and continue
+        if (parsed.status === 404 || parsed.error) {
+          console.log('[list-categories] Got error response, trying next approach...');
+        }
+      } catch (parseErr) {
+        console.log('[list-categories] Parse error:', parseErr.message);
       }
-
-      const categories = Object.entries(catMap).map(([name, id]) => ({
-        name: name,
-        id: id
-      })).sort((a, b) => a.name.localeCompare(b.name));
-
-      return res.status(200).json({ categories });
     }
 
-    const data = await response.json();
-    res.status(200).json(data);
+    // If still no recipes, try categories endpoint directly
+    if (!recipes) {
+      for (const cookie of cookieVariants) {
+        const catRes = await fetch(`${adminUrl}/api/admin/nutrition/categories`, {
+          headers: {
+            'Cookie': cookie,
+            'User-Agent': 'TFG-Agent/1.0'
+          }
+        });
+        const catText = await catRes.text();
+        console.log('[list-categories] Categories endpoint status:', catRes.status, 'Response:', catText.substring(0, 300));
+
+        try {
+          const catParsed = JSON.parse(catText);
+          if (Array.isArray(catParsed)) {
+            return res.status(200).json({ categories: catParsed });
+          }
+          if (catParsed.data && Array.isArray(catParsed.data)) {
+            return res.status(200).json({ categories: catParsed.data });
+          }
+          if (catParsed.categories) {
+            return res.status(200).json(catParsed);
+          }
+        } catch (e) {
+          console.log('[list-categories] Categories parse error:', e.message);
+        }
+      }
+    }
+
+    if (!recipes || recipes.length === 0) {
+      console.log('[list-categories] No recipes found, returning empty categories');
+      return res.status(200).json({ categories: [], debug: 'No recipes returned from admin API' });
+    }
+
+    // Extract unique categories with their UUIDs
+    const catMap = {};
+    for (const r of recipes) {
+      // Try multiple possible field names
+      const catName = r.category_name || r.categoryName || r.category || '';
+      const catId = r.recipe_category || r.recipe_categories || r.categoryId || r.categories || '';
+      if (catName && !catMap[catName]) {
+        catMap[catName] = catId;
+      }
+    }
+
+    const categories = Object.entries(catMap).map(([name, id]) => ({
+      name: name,
+      id: id
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log('[list-categories] Found', categories.length, 'categories:', categories.map(c => c.name).join(', '));
+    return res.status(200).json({ categories });
+
   } catch (e) {
+    console.error('[list-categories] Error:', e.message);
     res.status(500).json({ error: e.message });
   }
 }
