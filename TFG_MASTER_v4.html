@@ -291,7 +291,10 @@ let currentUser = null;
 let currentView = 'gantt';
 let activeArea = 'all';
 let agRData = null, agDalleUrl = null, agPostType = 'launch_announcement';
-const OPENAI_KEY = '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';
+// OPENAI_KEY removed — now server-side via /api/generate-image
+let agRDataES = null; // Spanish version of recipe data
+let agDallePrompt = ''; // Editable DALL-E prompt
+let agCategories = []; // Dynamic categories from admin
 
 // ═══ AUTH ═══
 function doLogin(){
@@ -491,6 +494,7 @@ function renderAgents(){
 
   <!-- RECIPE -->
   <div class="ag-panel" id="agp-recipes">
+    <!-- STEP 01: INPUT -->
     <div class="ag-card">
       <div class="ag-lbl">Step 01 — Link + Foto + Instrucciones</div>
       <div class="ag-title">Configura tu receta</div>
@@ -501,8 +505,11 @@ function renderAgents(){
       <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;">
         <div><span class="ag-lbl-sm">Porciones</span><input class="ag-inp" type="number" id="ag-srv" value="1" min="1" max="4" style="width:70px;" /></div>
         <div style="flex:1;"><span class="ag-lbl-sm">Categoría</span>
-          <select class="ag-inp" id="ag-cat"><option>Salad</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option><option>Dessert</option></select>
+          <select class="ag-inp" id="ag-cat"><option value="">Cargando...</option></select>
         </div>
+      </div>
+      <div id="ag-newcat-row" style="display:none;margin-top:8px;">
+        <input class="ag-inp" type="text" id="ag-newcat" placeholder="Nombre de nueva categoría..." />
       </div>
 
       <div class="ag-div" style="margin-top:14px;"></div>
@@ -535,17 +542,63 @@ function renderAgents(){
       </div>
       <div class="ag-st" id="ag-fs"></div>
     </div>
+
+    <!-- STEP 02: RECIPE PREVIEW (English + Spanish, editable) -->
     <div class="ag-card ag-hidden" id="ag-r2">
       <div class="ag-lbl">Step 02 — Receta Extraída</div>
-      <div class="ag-title" id="ag-rname"></div>
-      <div class="ag-macros" id="ag-macros"></div>
-      <div class="ag-tags" id="ag-tags"></div>
-      <div class="ag-result" id="ag-rtext"></div>
+      <!-- Language tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="ag-btn ag-btn-sm" id="ag-lang-en" onclick="agLang('en')" style="background:var(--red);color:#fff;">English</button>
+        <button class="ag-btn ag-btn-sm" id="ag-lang-es" onclick="agLang('es')">Español</button>
+      </div>
+      <!-- Editable name -->
+      <input class="ag-inp" type="text" id="ag-rname" style="font-size:18px;font-weight:700;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;margin-bottom:8px;" />
+      <!-- Editable macros -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <div style="flex:1;min-width:70px;"><span class="ag-lbl-sm">Calorías</span><input class="ag-inp" type="number" id="ag-e-cal" style="width:100%;" /></div>
+        <div style="flex:1;min-width:70px;"><span class="ag-lbl-sm">Proteína (g)</span><input class="ag-inp" type="number" id="ag-e-pro" style="width:100%;" /></div>
+        <div style="flex:1;min-width:70px;"><span class="ag-lbl-sm">Grasa (g)</span><input class="ag-inp" type="number" id="ag-e-fat" style="width:100%;" /></div>
+        <div style="flex:1;min-width:70px;"><span class="ag-lbl-sm">Carbos (g)</span><input class="ag-inp" type="number" id="ag-e-carb" style="width:100%;" /></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;"><span class="ag-lbl-sm">Tiempo (min)</span><input class="ag-inp" type="number" id="ag-e-time" style="width:100%;" /></div>
+        <div style="flex:1;"><span class="ag-lbl-sm">Categoría</span>
+          <select class="ag-inp" id="ag-e-cat" style="width:100%;"></select>
+        </div>
+        <div style="flex:1;"><span class="ag-lbl-sm">Porciones</span><input class="ag-inp" type="number" id="ag-e-srv" style="width:100%;" /></div>
+      </div>
+      <div class="ag-div"></div>
+      <!-- Editable ingredients -->
+      <span class="ag-lbl-sm">Ingredientes</span>
+      <textarea class="ag-inp" id="ag-e-ing" style="min-height:140px;font-size:12px;line-height:1.6;margin-top:4px;"></textarea>
+      <!-- Editable instructions -->
+      <span class="ag-lbl-sm" style="margin-top:8px;">Instrucciones</span>
+      <textarea class="ag-inp" id="ag-e-inst" style="min-height:140px;font-size:12px;line-height:1.6;margin-top:4px;"></textarea>
+      <!-- Dictate correction -->
+      <div class="ag-div" style="margin-top:10px;"></div>
+      <span class="ag-lbl-sm">Corrección por voz</span>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input class="ag-inp" type="text" id="ag-dictate" placeholder='Ej: "cambia arroz por quinoa", "sube proteína a 40g"' style="flex:1;" />
+        <button class="ag-btn ag-btn-sm" onclick="agDictateCorrection()" title="Aplicar corrección con Claude">Aplicar</button>
+        <button class="ag-btn ag-btn-sm" onclick="agDictateMic()" title="Dictar corrección">🎤</button>
+      </div>
+      <div class="ag-st" id="ag-dictate-st" style="font-size:11px;"></div>
+      <!-- Action buttons -->
+      <div class="ag-row" style="margin-top:14px;">
+        <button class="ag-btn ag-btn-red" onclick="agSaveEdits();agShow('ag-r3');agBuildPrompt();">→ Siguiente: Imagen</button>
+        <button class="ag-btn ag-btn-sm" onclick="agFetch()">Re-extraer</button>
+      </div>
     </div>
+
+    <!-- STEP 03: IMAGE (editable prompt + generate) -->
     <div class="ag-card ag-hidden" id="ag-r3">
-      <div class="ag-lbl">Step 03 — Generando Foto</div>
-      <div class="ag-title">DALL-E creando tu imagen</div>
-      <div class="ag-img2">
+      <div class="ag-lbl">Step 03 — Imagen</div>
+      <div class="ag-title">Genera o sube la foto</div>
+      <!-- Editable DALL-E prompt -->
+      <span class="ag-lbl-sm">Prompt DALL-E (editable)</span>
+      <textarea class="ag-inp" id="ag-dalle-prompt" style="min-height:100px;font-size:11px;line-height:1.5;margin-top:4px;"></textarea>
+      <!-- Image area -->
+      <div class="ag-img2" style="margin-top:10px;">
         <div class="ag-slot"><div class="ag-img-l">Tu foto original</div>
           <img id="ag-fp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
           <div id="ag-upzone" style="border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px;">Sin foto</div>
@@ -555,20 +608,45 @@ function renderAgents(){
           <img id="ag-dp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
         </div>
       </div>
-      <div class="ag-row">
-        <button class="ag-btn ag-btn-sm ag-hidden" id="ag-rb" onclick="agGenImg()">Regenerar foto</button>
+      <div class="ag-row" style="margin-top:10px;">
+        <button class="ag-btn ag-btn-red" id="ag-gb" onclick="agGenImg()">Generar con DALL-E</button>
+        <button class="ag-btn ag-btn-sm" onclick="document.getElementById('ag-fi-photo').click()">Subir mi foto</button>
+      </div>
+      <input type="file" id="ag-fi-photo" accept="image/*" style="display:none;" onchange="agPhoto(event)" />
+      <div class="ag-row ag-hidden" id="ag-img-actions" style="margin-top:8px;">
+        <button class="ag-btn ag-btn-red" onclick="agShowApprove();agShow('ag-r4');">Usar esta imagen →</button>
+        <button class="ag-btn ag-btn-sm" onclick="agGenImg()">Regenerar</button>
+        <button class="ag-btn ag-btn-sm" onclick="agHide('ag-img-actions');document.getElementById('ag-dp').style.display='none';document.getElementById('ag-dh').style.display='none';">Editar prompt</button>
       </div>
       <div class="ag-st" id="ag-ps"></div>
     </div>
+
+    <!-- STEP 04: APPROVE & CREATE -->
     <div class="ag-card ag-hidden" id="ag-r4">
-      <div class="ag-lbl">Step 04 — Aprobar y Subir</div>
-      <div class="ag-title">¿Todo se ve bien?</div>
-      <div style="font-size:13px;color:var(--t3);line-height:1.8;" id="ag-sum"></div>
-      <div class="ag-row" style="margin-top:14px;">
-        <button class="ag-btn ag-btn-red" onclick="agApprove()">Aprobar y Subir a la Web →</button>
-        <button class="ag-btn ag-btn-sm" onclick="agReset()">Empezar de Nuevo</button>
+      <div class="ag-lbl">Step 04 — Aprobar y Crear</div>
+      <div class="ag-title">Resumen Final</div>
+      <div style="font-size:13px;color:var(--t2);line-height:1.8;" id="ag-sum"></div>
+      <div class="ag-div" style="margin-top:10px;"></div>
+      <div class="ag-row" style="margin-top:10px;">
+        <button class="ag-btn ag-btn-red" id="ag-create-btn" onclick="agApprove()">CREAR RECETA →</button>
+        <button class="ag-btn ag-btn-sm" onclick="agHide('ag-r4');agShow('ag-r2');">Editar receta</button>
+        <button class="ag-btn ag-btn-sm" onclick="agHide('ag-r4');agShow('ag-r3');">Cambiar imagen</button>
       </div>
       <div class="ag-st" id="ag-as"></div>
+      <!-- Post-creation actions (hidden until success) -->
+      <div class="ag-hidden" id="ag-success">
+        <div class="ag-div" style="margin-top:10px;"></div>
+        <div style="text-align:center;padding:14px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-top:8px;">
+          <div style="font-size:22px;">✅</div>
+          <div style="font-size:14px;font-weight:600;color:var(--green);margin-top:4px;">Receta creada exitosamente</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:4px;" id="ag-success-msg"></div>
+        </div>
+        <div class="ag-row" style="margin-top:10px;">
+          <a class="ag-btn ag-btn-sm" id="ag-view-link" href="#" target="_blank">Ver en admin</a>
+          <button class="ag-btn ag-btn-sm" onclick="agDownloadImg()">Descargar imagen</button>
+          <button class="ag-btn ag-btn-red" onclick="agReset()">Crear otra receta</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -620,12 +698,165 @@ function agTab(t){
   document.querySelectorAll('.ag-tab').forEach((el,i)=>el.classList.toggle('on',['home','recipes','instagram'][i]===t));
   document.querySelectorAll('.ag-panel').forEach(p=>{p.classList.remove('on');});
   const p=document.getElementById('agp-'+t);if(p)p.classList.add('on');
+  if(t==='recipes'&&agCategories.length===0)agLoadCategories();
 }
 function agSt(id,msg,cls){const e=document.getElementById(id);if(!e)return;e.textContent=msg;e.className='ag-st'+(cls?' '+cls:'');}
 function agShow(id){const e=document.getElementById(id);if(e)e.classList.remove('ag-hidden');}
 function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag-hidden');}
 function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
 function agDP(r){return `Professional food photography fitness nutrition catalog, ${r.name}. ${r.image_description}. Overhead or 45-degree angle, clean white ceramic bowl centered, soft natural studio lighting, light marble background, vibrant food colors, fresh herb garnish, gold cutlery, no text, no watermarks, ultra sharp 4K.`;}
+
+// Load categories dynamically on recipe tab activation
+async function agLoadCategories(){
+  try{
+    const res=await fetch('/api/list-categories');
+    const data=await res.json();
+    agCategories=data.categories||[];
+    const selects=['ag-cat','ag-e-cat'];
+    for(const sid of selects){
+      const sel=document.getElementById(sid);if(!sel)continue;
+      sel.innerHTML='';
+      agCategories.forEach(c=>{const o=document.createElement('option');o.value=c.id||c.name;o.textContent=c.name;sel.appendChild(o);});
+      const newOpt=document.createElement('option');newOpt.value='__new__';newOpt.textContent='+ Nueva categoría';sel.appendChild(newOpt);
+    }
+    // Show/hide new category input
+    document.getElementById('ag-cat').onchange=function(){
+      document.getElementById('ag-newcat-row').style.display=this.value==='__new__'?'block':'none';
+    };
+  }catch(e){
+    console.error('Failed to load categories:',e);
+    // Fallback to static categories
+    const cats=['Salad','Breakfast','Lunch','Dinner','Indian','Vegan','Pre-Workout','High-Protein Shakes','Low Calories'];
+    const selects=['ag-cat','ag-e-cat'];
+    for(const sid of selects){
+      const sel=document.getElementById(sid);if(!sel)continue;
+      sel.innerHTML='';
+      cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+    }
+  }
+}
+
+// Language toggle EN/ES
+let agCurrentLang='en';
+function agLang(lang){
+  agCurrentLang=lang;
+  document.getElementById('ag-lang-en').style.background=lang==='en'?'var(--red)':'';
+  document.getElementById('ag-lang-en').style.color=lang==='en'?'#fff':'';
+  document.getElementById('ag-lang-es').style.background=lang==='es'?'var(--red)':'';
+  document.getElementById('ag-lang-es').style.color=lang==='es'?'#fff':'';
+  const r=lang==='es'?agRDataES:agRData;
+  if(r)agFillEditFields(r);
+}
+
+// Fill edit fields from recipe data
+function agFillEditFields(r){
+  if(!r)return;
+  document.getElementById('ag-rname').value=r.name||'';
+  document.getElementById('ag-e-cal').value=Math.round(r.calories)||0;
+  document.getElementById('ag-e-pro').value=Math.round(r.protein)||0;
+  document.getElementById('ag-e-fat').value=Math.round(r.fat)||0;
+  document.getElementById('ag-e-carb').value=Math.round(r.carbs)||0;
+  document.getElementById('ag-e-time').value=r.prep_time||0;
+  document.getElementById('ag-e-srv').value=r.servings||1;
+  // Set category
+  const catSel=document.getElementById('ag-e-cat');
+  if(catSel){for(let i=0;i<catSel.options.length;i++){if(catSel.options[i].value===r.category||catSel.options[i].textContent===r.category){catSel.selectedIndex=i;break;}}}
+  // Ingredients text
+  let ingTxt='';
+  if(r.ingredients)r.ingredients.forEach(s=>{ingTxt+=`[${s.section||'Main'}]\n`;(s.items||[]).forEach(it=>ingTxt+=`• ${it}\n`);ingTxt+='\n';});
+  document.getElementById('ag-e-ing').value=ingTxt.trim();
+  // Instructions text
+  let instTxt='';
+  if(r.instructions)r.instructions.forEach(s=>{instTxt+=`[${s.section||'Steps'}]\n`;(s.steps||[]).forEach((st,i)=>instTxt+=`${i+1}. ${st}\n`);instTxt+='\n';});
+  document.getElementById('ag-e-inst').value=instTxt.trim();
+}
+
+// Save edits back to agRData
+function agSaveEdits(){
+  if(!agRData)return;
+  const r=agCurrentLang==='es'?agRDataES:agRData;
+  r.name=document.getElementById('ag-rname').value;
+  r.calories=parseFloat(document.getElementById('ag-e-cal').value)||0;
+  r.protein=parseFloat(document.getElementById('ag-e-pro').value)||0;
+  r.fat=parseFloat(document.getElementById('ag-e-fat').value)||0;
+  r.carbs=parseFloat(document.getElementById('ag-e-carb').value)||0;
+  r.prep_time=parseInt(document.getElementById('ag-e-time').value)||0;
+  r.servings=parseInt(document.getElementById('ag-e-srv').value)||1;
+  const catSel=document.getElementById('ag-e-cat');
+  r.category=catSel.options[catSel.selectedIndex]?.textContent||r.category;
+  // Parse ingredients
+  r.ingredients=agParseIngredients(document.getElementById('ag-e-ing').value);
+  r.instructions=agParseInstructions(document.getElementById('ag-e-inst').value);
+}
+
+function agParseIngredients(text){
+  const sections=[];let current=null;
+  text.split('\n').forEach(line=>{
+    line=line.trim();if(!line)return;
+    if(line.startsWith('[')&&line.endsWith(']')){current={section:line.slice(1,-1),items:[]};sections.push(current);}
+    else{if(!current){current={section:'Main',items:[]};sections.push(current);}current.items.push(line.replace(/^[•\-]\s*/,''));}
+  });return sections;
+}
+
+function agParseInstructions(text){
+  const sections=[];let current=null;
+  text.split('\n').forEach(line=>{
+    line=line.trim();if(!line)return;
+    if(line.startsWith('[')&&line.endsWith(']')){current={section:line.slice(1,-1),steps:[]};sections.push(current);}
+    else{if(!current){current={section:'Steps',steps:[]};sections.push(current);}current.steps.push(line.replace(/^\d+\.\s*/,''));}
+  });return sections;
+}
+
+// Build DALL-E prompt and show in textarea
+function agBuildPrompt(){
+  const r=agRData;
+  if(!r)return;
+  agDallePrompt=agDP(r);
+  document.getElementById('ag-dalle-prompt').value=agDallePrompt;
+  // Transfer early photo if exists
+  if(agEarlyPhotoData){
+    const fp=document.getElementById('ag-fp');
+    fp.src=agEarlyPhotoData;fp.style.display='block';
+    document.getElementById('ag-upzone').style.display='none';
+  }
+}
+
+// Dictate correction via Claude
+async function agDictateCorrection(){
+  const correction=document.getElementById('ag-dictate').value.trim();
+  if(!correction||!agRData)return;
+  agSt('ag-dictate-st','Aplicando corrección...','ag-loading');
+  try{
+    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:`Here is a recipe in JSON:\n${JSON.stringify(agRData)}\n\nApply this correction: "${correction}"\n\nReturn the COMPLETE updated recipe as valid JSON only (no markdown, no explanation). Keep the same structure. If the correction mentions image/photo changes, update the image_description field.`}]})});
+    const data=await resp.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No JSON in response');
+    agRData=JSON.parse(m[0]);
+    agFillEditFields(agRData);
+    agSt('ag-dictate-st','✓ Corrección aplicada','ag-ok');
+    document.getElementById('ag-dictate').value='';
+  }catch(e){agSt('ag-dictate-st',e.message,'ag-err');}
+}
+
+// Dictate correction via microphone
+function agDictateMic(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){agSt('ag-dictate-st','Tu navegador no soporta voz','ag-err');return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const rec=new SR();rec.lang='es-MX';rec.continuous=false;rec.interimResults=false;
+  rec.onresult=e=>{document.getElementById('ag-dictate').value=e.results[0][0].transcript;agSt('ag-dictate-st','✓ Capturado — haz clic en Aplicar','ag-ok');};
+  rec.onerror=e=>{agSt('ag-dictate-st','Error: '+e.error,'ag-err');};
+  rec.start();agSt('ag-dictate-st','Escuchando...','ag-loading');
+}
+
+// Download image to local machine
+function agDownloadImg(){
+  if(!agDalleUrl)return;
+  const a=document.createElement('a');
+  a.href=agDalleUrl;
+  a.download=(agRData?.name||'recipe').replace(/\s+/g,'-')+'.png';
+  a.target='_blank';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
 
 // Early photo handler
 function agEarlyPhoto(e){
@@ -697,43 +928,36 @@ function agToggleMic(){
 async function agFetch(){
   const url=document.getElementById('ag-url').value.trim();
   const srv=parseInt(document.getElementById('ag-srv').value)||1;
-  const cat=document.getElementById('ag-cat').value;
+  const catSel=document.getElementById('ag-cat');
+  const cat=catSel.value==='__new__'?(document.getElementById('ag-newcat').value.trim()||'Uncategorized'):catSel.options[catSel.selectedIndex]?.textContent||'Uncategorized';
   const instructions=document.getElementById('ag-instructions').value.trim();
   if(!url)return;
-  // Stop mic if active
   if(agMicActive&&agRecognition){agRecognition.stop();agMicActive=false;}
   document.getElementById('ag-fbtn').disabled=true;
-  agSt('ag-fs','Analizando receta y aplicando instrucciones...','ag-loading');
+  agSt('ag-fs','Analizando receta...','ag-loading');
   try{
     const instrNote=instructions?`\n\nUSER INSTRUCTIONS (apply these changes to the recipe and photo): "${instructions}"\nFor photo: extract image style preferences from the instructions and use them in image_description.`:'';
-    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Extract recipe from: ${url}\nApply servings: ${srv}, category: ${cat}.${instrNote}\nReturn ONLY valid JSON (no markdown):\n{"name":"english name","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"name","items":["item adjusted for ${srv} serving(s) and instructions"]}],"instructions":[{"section":"name","steps":["step"]}],"notes":["note"],"image_description":"detailed DALL-E prompt incorporating user photo style instructions: lighting, background, props, angle, colors, mood"}`}]})});
+    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Extract recipe from: ${url}\nApply servings: ${srv}, category: ${cat}.${instrNote}\n\nReturn ONLY valid JSON with TWO versions — English and Spanish:\n{"en":{"name":"english name","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"name","items":["item adjusted for ${srv} serving(s)"]}],"instructions":[{"section":"name","steps":["step"]}],"notes":["note"],"image_description":"detailed DALL-E prompt: lighting, background, props, angle, colors, mood"},"es":{"name":"nombre en español","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"nombre seccion","items":["ingrediente ajustado para ${srv} porcion(es)"]}],"instructions":[{"section":"nombre seccion","steps":["paso"]}],"notes":["nota"],"image_description":"same as english version"}}`}]})});
     const data=await resp.json();
     const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
     const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No se pudo extraer la receta.');
-    agRData=JSON.parse(m[0]);agShowR(agRData);
-    agSt('ag-fs','✓ Receta extraída — generando imagen...','ag-ok');
-    // Show step 03 and auto-generate image
-    agShow('ag-r3');
-    // Transfer early photo if exists
-    if(agEarlyPhotoData){
-      const fp=document.getElementById('ag-fp');
-      fp.src=agEarlyPhotoData;fp.style.display='block';
-      document.getElementById('ag-upzone').style.display='none';
-    }
-    agGenImg();
+    const parsed=JSON.parse(m[0]);
+    // Handle both formats: {en:{...},es:{...}} or flat {name:...}
+    if(parsed.en){agRData=parsed.en;agRDataES=parsed.es;}
+    else{agRData=parsed;agRDataES=null;}
+    agShowR(agRData);
+    agSt('ag-fs','✓ Receta extraída — revisa y edita antes de la imagen','ag-ok');
   }catch(e){agSt('ag-fs',e.message,'ag-err');}
   document.getElementById('ag-fbtn').disabled=false;
 }
 
 function agShowR(r){
-  document.getElementById('ag-rname').textContent=r.name;
-  document.getElementById('ag-macros').innerHTML=['calories','protein','fat','carbs'].map((k,i)=>`<div class="ag-mac"><div class="ag-mac-v">${Math.round(r[k])}${i>0?'g':''}</div><div class="ag-mac-l">${['Cal','Protein','Fat','Carbs'][i]}</div></div>`).join('');
-  document.getElementById('ag-tags').innerHTML=`<span class="ag-tag">${r.category}</span><span class="ag-tag">${r.prep_time}min</span><span class="ag-tag">${r.servings} serving(s)</span>`;
-  let txt='';
-  r.ingredients.forEach(s=>{txt+=`INGREDIENTES — ${s.section.toUpperCase()}\n`;s.items.forEach(i=>txt+=`• ${i}\n`);txt+='\n';});
-  r.instructions.forEach(s=>{txt+=`PREPARACIÓN — ${s.section.toUpperCase()}\n`;s.steps.forEach((st,i)=>txt+=`${i+1}. ${st}\n`);txt+='\n';});
-  if(r.notes&&r.notes.length){txt+='NOTAS\n';r.notes.forEach(n=>txt+=`• ${n}\n`);}
-  document.getElementById('ag-rtext').textContent=txt.trim();
+  agCurrentLang='en';
+  document.getElementById('ag-lang-en').style.background='var(--red)';
+  document.getElementById('ag-lang-en').style.color='#fff';
+  document.getElementById('ag-lang-es').style.background='';
+  document.getElementById('ag-lang-es').style.color='';
+  agFillEditFields(r);
   agShow('ag-r2');
 }
 
@@ -753,42 +977,110 @@ async function agGenImg(){
   const dhbtn=document.getElementById('ag-gb');if(dhbtn)dhbtn.disabled=true;
   const dh=document.getElementById('ag-dh');if(dh){dh.style.display='flex';dh.textContent='Generando...';}
   document.getElementById('ag-dp').style.display='none';
-  agSt('ag-ps','Generando imagen con DALL-E 3...','ag-loading');
+  agHide('ag-img-actions');
+  agSt('ag-ps','Generando imagen con DALL-E 3 (server-side)...','ag-loading');
   try{
-    const resp=await fetch('https://api.openai.com/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${OPENAI_KEY}`},body:JSON.stringify({model:'dall-e-3',prompt:agDP(agRData),n:1,size:'1024x1024',quality:'hd'})});
-    const data=await resp.json();if(data.error)throw new Error(data.error.message);
-    agDalleUrl=data.data[0].url;if(dh)dh.style.display='none';
+    // Use editable prompt from textarea
+    const prompt=document.getElementById('ag-dalle-prompt').value.trim()||agDP(agRData);
+    const resp=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
+    const data=await resp.json();if(data.error)throw new Error(data.error);
+    agDalleUrl=data.url;if(dh)dh.style.display='none';
     const img=document.getElementById('ag-dp');if(img){img.src=agDalleUrl;img.style.display='block';}
-    agShow('ag-rb');agSt('ag-ps','✓ Imagen generada.','ag-ok');agShowApprove();
-  }catch(e){agSt('ag-ps',e.message,'ag-err');}
-  const dhbtn2=document.getElementById('ag-gb');if(dhbtn2)dhbtn2.disabled=false;
+    agShow('ag-img-actions');
+    agSt('ag-ps','✓ Imagen generada. Usa, regenera, o edita el prompt.','ag-ok');
+  }catch(e){agSt('ag-ps',e.message,'ag-err');if(dh)dh.style.display='none';}
+  if(dhbtn)dhbtn.disabled=false;
 }
 
 function agShowApprove(){
   if(!agRData)return;
-  document.getElementById('ag-sum').innerHTML=`<strong style="color:#fff">${agRData.name}</strong><br>${Math.round(agRData.calories)} kcal · ${Math.round(agRData.protein)}g protein · ${Math.round(agRData.fat)}g fat · ${Math.round(agRData.carbs)}g carbs<br><span style="color:var(--t3)">${agRData.category} · ${agRData.prep_time}min</span>${agDalleUrl?'<br><span style="color:var(--green)">✓ Imagen DALL-E lista</span>':''}`;
-  agShow('ag-r4');
+  agSaveEdits();
+  const r=agRData;
+  let ingCount=0;r.ingredients.forEach(s=>ingCount+=s.items.length);
+  let stepCount=0;r.instructions.forEach(s=>stepCount+=s.steps.length);
+  document.getElementById('ag-sum').innerHTML=`
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+      ${agDalleUrl?`<img src="${agDalleUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--border);flex-shrink:0;"/>`:''}
+      <div>
+        <strong style="color:#fff;font-size:16px;">${r.name}</strong>
+        ${agRDataES?`<br><span style="color:var(--t3);font-size:12px;">ES: ${agRDataES.name}</span>`:''}
+        <br><span style="color:var(--t2);font-size:13px;">${Math.round(r.calories)} kcal · ${Math.round(r.protein)}g pro · ${Math.round(r.fat)}g fat · ${Math.round(r.carbs)}g carb</span>
+        <br><span style="color:var(--t3);font-size:12px;">${r.category} · ${r.prep_time}min · ${r.servings} porción(es)</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--t3);">${ingCount} ingredientes · ${stepCount} pasos</div>
+    ${agDalleUrl?'<div style="color:var(--green);font-size:12px;margin-top:4px;">✓ Imagen DALL-E lista</div>':'<div style="color:var(--amber);font-size:12px;margin-top:4px;">⚠ Sin imagen — se creará sin foto</div>'}
+  `;
 }
 
-function agApprove(){
+async function agApprove(){
   if(!agRData)return;
+  agSaveEdits();
   const r=agRData;
-  const ingr=r.ingredients.map(s=>s.section+':\n'+s.items.map(i=>'• '+i).join('\n')).join('\n\n');
-  const inst=r.instructions.map(s=>s.section+':\n'+s.steps.map((st,i)=>(i+1)+'. '+st).join('\n')).join('\n\n');
-  alert(`Ve a: the-fitness-garage.com/admin/nutrition/add\n\nNOMBRE: ${r.name}\nCALORÍAS: ${Math.round(r.calories)}\nPROTEÍNA: ${Math.round(r.protein)}g\nGRASA: ${Math.round(r.fat)}g\nCARBOS: ${Math.round(r.carbs)}g\nTIEMPO: ${r.prep_time}min\nCATEGORÍA: ${r.category}\n\n${ingr}\n\n${inst}\n\nIMAGEN:\n${agDalleUrl||'Subir manualmente'}`);
-  agSt('ag-as','✓ Datos listos — ve a llenar el formulario!','ag-ok');
+  const btn=document.getElementById('ag-create-btn');
+  btn.disabled=true;btn.textContent='Creando...';
+  agSt('ag-as','Enviando receta al admin...','ag-loading');
+
+  try{
+    // Find category UUID
+    const catSel=document.getElementById('ag-e-cat');
+    let catId=catSel.value;
+    // If it's a name, find the ID from agCategories
+    const catMatch=agCategories.find(c=>c.name===catId||c.id===catId);
+    if(catMatch)catId=catMatch.id;
+
+    // Format ingredients and instructions as JSON strings (admin format)
+    const ingredients=r.ingredients.map(s=>JSON.stringify({title:s.section,items:s.items}));
+    const instructions=r.instructions.map(s=>JSON.stringify({title:s.section,steps:s.steps}));
+
+    const payload={
+      recipe_name:r.name,
+      recipe_categories:catId,
+      recipe_preptime:r.prep_time,
+      recipe_serving:r.servings,
+      recipe_calories:Math.round(r.calories),
+      recipe_nutrition:Math.round(r.protein),
+      recipe_fat:Math.round(r.fat),
+      recipe_carbs:Math.round(r.carbs),
+      ingredients:ingredients,
+      instructions:instructions,
+      image_url:agDalleUrl||''
+    };
+
+    const resp=await fetch('/api/create-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const result=await resp.json();
+
+    if(result.error){throw new Error(result.error);}
+
+    // Success!
+    agSt('ag-as','','');
+    agShow('ag-success');
+    document.getElementById('ag-success-msg').textContent=`"${r.name}" — ${r.category}`;
+    document.getElementById('ag-view-link').href='https://the-fitness-garage.com/admin/nutrition';
+    btn.textContent='✓ Creada';
+
+    // Auto-download image
+    if(agDalleUrl)agDownloadImg();
+
+  }catch(e){
+    agSt('ag-as','Error: '+e.message,'ag-err');
+    btn.disabled=false;btn.textContent='CREAR RECETA →';
+  }
 }
 
 function agReset(){
-  agRData=null;agDalleUrl=null;agEarlyPhotoData=null;
-  ['ag-r2','ag-r3','ag-r4','ag-rb'].forEach(agHide);
+  agRData=null;agRDataES=null;agDalleUrl=null;agDallePrompt='';agEarlyPhotoData=null;agCurrentLang='en';
+  ['ag-r2','ag-r3','ag-r4','ag-rb','ag-success','ag-img-actions'].forEach(agHide);
   document.getElementById('ag-url').value='';
   const fp2=document.getElementById('ag-fp');if(fp2)fp2.style.display='none';
   const uz=document.getElementById('ag-upzone');if(uz)uz.style.display='flex';
   const dp2=document.getElementById('ag-dp');if(dp2)dp2.style.display='none';
+  const dh=document.getElementById('ag-dh');if(dh)dh.style.display='none';
   const ti=document.getElementById('ag-thumb-img');if(ti){ti.style.display='none';ti.src='';}
   const ticon=document.getElementById('ag-thumb-icon');if(ticon)ticon.style.display='';
   const inst=document.getElementById('ag-instructions');if(inst)inst.value='';
+  const dprompt=document.getElementById('ag-dalle-prompt');if(dprompt)dprompt.value='';
+  const newCat=document.getElementById('ag-new-cat');if(newCat)newCat.style.display='none';
   ['ag-fs','ag-ps','ag-as'].forEach(id=>agSt(id,'',''));
 }
 
