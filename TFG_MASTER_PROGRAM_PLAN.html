@@ -1,0 +1,3171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFG — Programa Maestro</title>
+<style>
+:root {
+  --bg: #0a0a0b; --s1: #111113; --s2: #1a1a1d; --s3: #222226;
+  --border: rgba(255,255,255,0.07); --red: #E62429; --rg: rgba(230,36,41,0.25);
+  --green: #34D058; --yellow: #F0C000; --blue: #58A6FF; --purple: #BC8CFF;
+  --orange: #F78166; --cyan: #56D4DD; --pink: #F778BA; --teal: #00CED1; --rose: #FF6B9D; --violet: #9B59B6; --mint: #1ABC9C;
+  --t: #ffffff; --t2: rgba(255,255,255,0.7); --t3: rgba(255,255,255,0.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;background:var(--bg);color:var(--t);overflow:hidden;height:100vh}
+::selection{background:var(--red);color:#fff}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+
+/* LAYOUT */
+.app{display:grid;grid-template-rows:auto auto 1fr;height:100vh}
+
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,rgba(230,36,41,0.12),transparent 50%);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.topbar h1{font-size:20px;font-weight:900;letter-spacing:2px;display:flex;align-items:center;gap:10px}
+.topbar h1 span{color:var(--red)}
+
+/* Logo circle */
+.logo-circle{width:60px;height:60px;border-radius:50%;border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;background:var(--s2);cursor:pointer;flex-shrink:0;overflow:hidden;transition:all .15s}
+.logo-circle:hover{box-shadow:0 0 20px var(--rg)}
+.logo-circle img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.logo-circle.empty{color:var(--red);background:var(--s3)}
+
+.topbar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* BUTTONS */
+.btn{padding:7px 16px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:var(--t);font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--s3);border-color:rgba(255,255,255,0.15)}
+.btn-red{background:var(--red);border-color:var(--red)}
+.btn-red:hover{background:#c41f23;box-shadow:0 0 20px var(--rg)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px}
+.btn-icon{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+/* LANG TOGGLE */
+.lang-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.lang-btn{padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer;border:none;background:transparent;color:var(--t3);transition:all .15s}
+.lang-btn.active{background:var(--red);color:white}
+.lang-btn:hover:not(.active){background:var(--s3);color:var(--t2)}
+
+/* PHASE TABS + VIEW TOGGLE */
+.toolbar{display:flex;align-items:center;gap:8px;padding:12px 24px;border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap}
+.phase-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--t3);font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap;letter-spacing:.5px}
+.phase-btn.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 12px var(--rg)}
+.phase-btn:hover:not(.active){border-color:rgba(255,255,255,0.2);color:var(--t2)}
+.phase-btn .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.sep{width:1px;height:24px;background:var(--border);margin:0 8px;flex-shrink:0}
+.view-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t3);font-weight:700;font-size:11px;cursor:pointer;transition:all .15s}
+.view-btn.active{background:var(--s3);color:var(--t);border-color:rgba(255,255,255,0.15)}
+
+/* MAIN CONTENT */
+.main{overflow:auto;position:relative}
+
+/* ═══ GANTT VIEW ═══ */
+.gantt-container{display:flex;min-height:100%;position:relative}
+.gantt-sidebar{width:380px;min-width:380px;border-right:2px solid rgba(255,255,255,0.12);background:var(--s1);position:sticky;left:0;z-index:10}
+.gantt-sidebar-header{display:grid;grid-template-columns:36px 1fr 66px 66px;padding:0 10px;height:44px;align-items:center;border-bottom:1px solid var(--border);font-size:10px;font-weight:800;color:var(--t3);letter-spacing:.8px;position:sticky;top:0;background:var(--s1);z-index:15}
+.gantt-row-sidebar{display:grid;grid-template-columns:36px 1fr 66px 66px;padding:0 10px;height:38px;box-sizing:border-box;border-bottom:1px solid var(--border);align-items:center;font-size:12px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden}
+.gantt-row-sidebar:hover{background:rgba(255,255,255,0.04)}
+.gantt-row-sidebar.milestone{background:rgba(230,36,41,0.04)}
+.gantt-row-sidebar .id{color:var(--t3);font-size:10px;font-weight:700;text-align:center}
+.gantt-row-sidebar .name{font-weight:600;line-height:1.2;display:flex;align-items:center;gap:5px;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-row-sidebar .dep-icon{font-size:10px;color:var(--t3)}
+.gantt-row-sidebar .dates{font-size:10px;color:var(--t3);font-weight:600;text-align:center}
+
+/* Drag reorder visual */
+.gantt-row-sidebar.dragging{opacity:0.4;background:rgba(230,36,41,0.08)}
+.gantt-row-sidebar.drag-over{border-top:2px solid var(--red) !important}
+
+/* Notification badge */
+.comment-badge{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900}
+
+.gantt-chart{flex:0 0 auto;position:relative}
+.gantt-header{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--s1);z-index:4}
+.gantt-header-cell{min-width:38px;padding:0 2px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,0.03);font-size:9px;font-weight:700;color:var(--t3)}
+.gantt-header-cell.today{background:rgba(230,36,41,0.08);color:var(--red)}
+.gantt-header-cell .day{font-size:11px;color:var(--t2)}
+.gantt-header-cell.weekend{background:rgba(255,255,255,0.015)}
+
+.gantt-body{position:relative}
+.gantt-row-chart{display:flex;height:38px;border-bottom:1px solid var(--border);position:relative}
+.gantt-cell{min-width:38px;border-right:1px solid rgba(255,255,255,0.02)}
+.gantt-cell.weekend{background:rgba(255,255,255,0.01)}
+.gantt-cell.today{background:rgba(230,36,41,0.05)}
+
+.gantt-bar{position:absolute;height:22px;top:8px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;cursor:pointer;transition:all .15s;z-index:2;min-width:22px;letter-spacing:.3px}
+.gantt-bar:hover{filter:brightness(1.2);transform:scaleY(1.15);z-index:3}
+.gantt-bar.completed{opacity:0.6}
+.gantt-bar .bar-progress{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:rgba(255,255,255,0.15)}
+
+/* Milestone diamond */
+.gantt-milestone{position:absolute;top:8px;width:22px;height:22px;transform:rotate(45deg);border-radius:4px;cursor:pointer;z-index:2;transition:all .15s}
+.gantt-milestone:hover{filter:brightness(1.2);transform:rotate(45deg) scale(1.2)}
+
+/* Today line */
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:3;pointer-events:none}
+.today-line::after{position:absolute;top:-20px;left:-12px;font-size:8px;font-weight:900;color:var(--red);letter-spacing:1px}
+.today-line[data-label]::after{content:attr(data-label)}
+
+/* Inline edit */
+.gantt-inline-edit{background:rgba(255,255,255,0.08);border:1px solid var(--red);border-radius:4px;color:white;padding:2px 4px;font-size:inherit;width:100%;outline:none;font-family:inherit;font-weight:600}
+.gantt-inline-edit:focus{box-shadow:0 0 0 2px var(--rg)}
+
+/* Context menu */
+.gantt-ctx-menu{position:fixed;z-index:9999;background:var(--s1);border:1px solid rgba(230,36,41,0.3);border-radius:10px;padding:4px 0;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.6)}
+.gantt-ctx-item{padding:10px 16px;cursor:pointer;color:var(--t2);font-size:12px;font-weight:600;transition:background .1s}
+.gantt-ctx-item:hover{background:rgba(230,36,41,0.12);color:white}
+.gantt-ctx-item:first-child{border-radius:6px 6px 0 0}
+.gantt-ctx-item:last-child{border-radius:0 0 6px 6px}
+
+/* ═══ FLOW VIEW ═══ */
+.flow-container{padding:32px;min-height:100%}
+.flow-area{margin-bottom:40px}
+.flow-area-title{font-size:16px;font-weight:900;letter-spacing:1px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.flow-area-title .area-dot{width:12px;height:12px;border-radius:4px}
+.flow-track{display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0}
+.flow-node{background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 18px;min-width:180px;max-width:220px;flex-shrink:0;position:relative;transition:all .15s;cursor:pointer}
+.flow-node:hover{border-color:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.flow-node.done{opacity:0.5}
+.flow-node.blocked{border-color:var(--red);border-style:dashed}
+.flow-node .node-title{font-size:12px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.flow-node .node-meta{font-size:10px;color:var(--t3);display:flex;gap:8px}
+.flow-node .node-status{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%}
+.flow-arrow{font-size:18px;color:var(--t3);flex-shrink:0;padding:0 4px}
+.flow-dep-label{font-size:9px;color:var(--t3);text-align:center;margin-top:4px}
+
+/* ═══ DETAIL PANEL ═══ */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100}
+.panel-overlay.show{display:block}
+.panel{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:95vw;background:var(--s1);border-left:1px solid var(--border);z-index:101;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease}
+.panel.show{transform:translateX(0)}
+.panel-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--s1);z-index:102}
+.panel-header h2{font-size:16px;font-weight:800}
+.panel-body{padding:24px;padding-bottom:40px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:white;font-size:13px;font-weight:600;outline:none;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--rg)}
+.field textarea{min-height:80px;resize:vertical}
+.field-row{display:flex;gap:12px}
+.field-row .field{flex:1}
+
+/* Deps chips */
+.dep-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.dep-chip{padding:4px 10px;border-radius:8px;background:var(--s3);font-size:10px;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:4px;cursor:default}
+.dep-chip .remove{cursor:pointer;color:var(--red);font-size:12px}
+.dep-add-row{display:flex;gap:6px;margin-top:8px}
+.dep-add-row select{flex:1}
+.dep-add-row .btn{flex-shrink:0}
+
+/* Progress bar in panel */
+.progress-bar-container{margin-top:4px;background:var(--s3);border-radius:6px;height:8px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:6px;transition:width .3s}
+
+/* Comments section */
+.comments-section{margin-top:24px;padding-top:24px;border-top:1px solid var(--border)}
+.comments-title{font-size:12px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+.comments-list{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;max-height:300px;overflow-y:auto}
+.comment-bubble{background:var(--s2);border-radius:12px;padding:12px 14px;border-left:2px solid var(--red)}
+.comment-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.comment-author{font-size:11px;font-weight:700;color:var(--t2)}
+.comment-lang{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(230,36,41,0.15);color:var(--red);font-weight:700}
+.comment-time{font-size:9px;color:var(--t3)}
+.comment-text{font-size:12px;color:var(--t);line-height:1.4;margin-bottom:6px}
+.comment-translation{font-size:10px;color:var(--t3);font-style:italic;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-top:6px}
+
+.comment-input-row{display:flex;gap:8px}
+.comment-input-row textarea{flex:1;min-height:60px;resize:none;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:white;font-size:12px;font-family:inherit}
+.comment-input-row .btn{flex-shrink:0;align-self:flex-end;padding:10px 14px}
+
+/* Comment action buttons (edit/delete) */
+.comment-actions{display:flex;gap:6px;margin-top:6px}
+.comment-actions button{background:none;border:1px solid var(--border);color:var(--t3);font-size:9px;padding:3px 8px;border-radius:6px;cursor:pointer;font-weight:700;transition:all .15s}
+.comment-actions button:hover{color:white;border-color:rgba(255,255,255,0.2)}
+.comment-actions button.delete-btn:hover{color:var(--red);border-color:var(--red)}
+
+/* Translation toggle */
+.translate-toggle{font-size:9px;color:var(--blue);cursor:pointer;margin-top:4px;font-weight:600;transition:color .1s}
+.translate-toggle:hover{color:var(--cyan)}
+
+/* Green flashing for unread comments */
+@keyframes unreadFlash{0%,100%{box-shadow:inset 0 0 0 0 transparent}50%{box-shadow:inset 0 0 12px rgba(52,208,88,0.25)}}
+.gantt-row-sidebar.has-unread{animation:unreadFlash 1.5s ease-in-out infinite}
+.gantt-row-sidebar.has-unread::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green);border-radius:0 2px 2px 0}
+
+/* Neon red login animation */
+@keyframes neonPulse{0%,100%{box-shadow:0 0 5px var(--red),0 0 15px var(--rg),0 0 30px rgba(230,36,41,0.1)}50%{box-shadow:0 0 10px var(--red),0 0 25px var(--rg),0 0 50px rgba(230,36,41,0.2),0 0 80px rgba(230,36,41,0.1)}}
+@keyframes neonBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.login-box{animation:neonPulse 2s ease-in-out infinite}
+.login-box::before{height:2px;background:linear-gradient(90deg,var(--red),var(--orange),var(--red),var(--orange),var(--red));background-size:300% 100%;animation:neonBorder 3s linear infinite}
+.login-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--orange),var(--red),var(--orange),var(--red));background-size:300% 100%;animation:neonBorder 3s linear infinite}
+@keyframes neonSide{0%,100%{opacity:0.3}50%{opacity:1}}
+.login-neon-left,.login-neon-right{position:absolute;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--red),var(--orange),var(--red));animation:neonSide 2s ease-in-out infinite}
+.login-neon-left{left:0}
+.login-neon-right{right:0}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:12px;padding:12px 24px;background:var(--s1);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.stat-pill{padding:6px 14px;border-radius:10px;background:var(--s2);border:1px solid var(--border);font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px}
+.stat-pill .num{font-size:16px;font-weight:900}
+
+/* SEARCH */
+.search-box{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:white;font-size:12px;font-weight:600;outline:none;width:180px}
+.search-box:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--rg)}
+
+/* DEV MODE BANNER */
+.dev-banner{background:linear-gradient(90deg,rgba(88,166,255,0.12),rgba(86,212,221,0.12));border-bottom:1px solid rgba(88,166,255,0.2);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;color:var(--blue)}
+.dev-banner .exit-dev{padding:4px 12px;border-radius:6px;border:1px solid var(--blue);background:transparent;color:var(--blue);font-weight:700;font-size:11px;cursor:pointer}
+.dev-banner .exit-dev:hover{background:rgba(88,166,255,0.1)}
+
+/* ROLE MODE BANNER */
+.role-banner{padding:10px 24px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;border-bottom:1px solid rgba(88,166,255,0.2)}
+.role-banner.role-dev{background:linear-gradient(90deg,rgba(88,166,255,0.12),rgba(86,212,221,0.12));color:var(--blue)}
+.role-banner.role-marketing{background:linear-gradient(90deg,rgba(188,140,255,0.12),rgba(188,140,255,0.08));color:var(--purple)}
+.role-banner .exit-role{padding:4px 12px;border-radius:6px;border:1px solid;background:transparent;font-weight:700;font-size:11px;cursor:pointer}
+.role-banner.role-dev .exit-role{border-color:var(--blue);color:var(--blue)}
+.role-banner.role-dev .exit-role:hover{background:rgba(88,166,255,0.1)}
+.role-banner.role-marketing .exit-role{border-color:var(--purple);color:var(--purple)}
+.role-banner.role-marketing .exit-role:hover{background:rgba(188,140,255,0.1)}
+
+/* ═══ LOGIN SCREEN ═══ */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-overlay.hidden{display:none}
+.login-box{background:var(--s1);border:1px solid var(--border);border-radius:24px;padding:48px 40px;width:400px;max-width:90vw;text-align:center;position:relative;overflow:hidden}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red),var(--orange),var(--red))}
+.login-logo{width:80px;height:80px;border-radius:50%;border:2px solid var(--red);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:var(--red);background:var(--s2);overflow:hidden}
+.login-logo img{width:100%;height:100%;object-fit:cover}
+.login-box h2{font-size:22px;font-weight:900;letter-spacing:2px;margin-bottom:6px}
+.login-box h2 span{color:var(--red)}
+.login-subtitle{font-size:12px;color:var(--t3);margin-bottom:32px;font-weight:600}
+.login-field{margin-bottom:16px;text-align:left}
+.login-field label{display:block;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.login-field input{width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--s2);color:white;font-size:14px;font-weight:600;outline:none;transition:all .15s}
+.login-field input:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--rg)}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--red);color:white;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;transition:all .15s;letter-spacing:.5px}
+.login-btn:hover{background:#c41f23;box-shadow:0 0 25px var(--rg)}
+.login-error{color:var(--red);font-size:12px;font-weight:700;margin-top:12px;min-height:18px}
+.login-footer{margin-top:24px;font-size:10px;color:var(--t3);letter-spacing:.5px}
+
+/* ═══ USER MANAGEMENT MODAL ═══ */
+.users-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.users-modal-overlay.show{display:flex}
+.users-modal{background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:28px;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.users-modal h3{font-size:18px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.user-row{display:grid;grid-template-columns:1fr 100px 1fr 60px;gap:10px;align-items:center;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;font-size:12px}
+.user-row .user-name{font-weight:700}
+.user-row .user-role{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;text-align:center}
+.user-row .user-role.role-dev{background:rgba(88,166,255,0.15);color:var(--blue)}
+.user-row .user-role.role-marketing{background:rgba(188,140,255,0.15);color:var(--purple)}
+.user-row .user-role.role-owner{background:rgba(230,36,41,0.15);color:var(--red)}
+.user-row .user-pass{color:var(--t3);font-family:monospace;font-size:11px}
+.user-row .user-actions{display:flex;gap:4px;justify-content:flex-end}
+.user-row .user-actions button{padding:4px 8px;border-radius:6px;border:none;background:rgba(255,255,255,0.06);color:var(--t3);cursor:pointer;font-size:10px;font-weight:700}
+.user-row .user-actions button:hover{background:rgba(255,255,255,0.12);color:white}
+.user-row .user-actions button.del:hover{color:var(--red)}
+.add-user-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.add-user-form input,.add-user-form select{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:white;font-size:12px;font-weight:600;outline:none}
+.add-user-form input:focus,.add-user-form select:focus{border-color:var(--red)}
+
+/* Topbar user info */
+.user-info-chip{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 6px;border-radius:20px;background:var(--s2);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:default}
+.user-info-chip .avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white}
+.user-info-chip .avatar.role-owner{background:var(--red)}
+.user-info-chip .avatar.role-dev{background:var(--blue)}
+.user-info-chip .avatar.role-marketing{background:var(--purple)}
+.btn-logout{padding:5px 10px;font-size:10px;border-radius:7px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--t3);cursor:pointer;font-weight:700}
+.btn-logout:hover{color:var(--red);border-color:var(--red)}
+
+@media (max-width: 768px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar-actions { width: 100%; justify-content: flex-start; }
+  .gantt-sidebar { width: 250px; min-width: 250px; }
+  .panel { width: 90vw; }
+  .login-box { padding: 32px 24px; }
+  .add-user-form { grid-template-columns: 1fr 1fr; }
+}
+/* ═══ IT SPLIT VIEW STYLES ═══ */
+.it-view{padding:28px 32px;overflow-y:auto;max-height:100%}
+.it-view h2.it-title{font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:6px}
+.it-view .it-subtitle{font-size:12px;color:var(--t3);margin-bottom:28px;font-weight:600}
+.it-view .it-confidential{background:rgba(230,36,41,0.1);border:1px solid var(--red);border-radius:10px;padding:10px 16px;font-size:11px;font-weight:700;color:var(--red);margin-bottom:24px;letter-spacing:.5px}
+
+.it-section{margin-bottom:36px}
+.it-section-header{font-size:16px;font-weight:800;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.it-section-note{font-size:12px;color:var(--t3);margin-bottom:16px;padding:10px 14px;background:var(--s2);border-radius:10px;line-height:1.5;border-left:3px solid var(--blue)}
+
+.badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:800;display:inline-block;letter-spacing:.3px}
+.badge-complete{background:#27ae60;color:white}
+.badge-pending{background:#e67e22;color:white}
+.badge-optional{background:#2980b9;color:white}
+.badge-phase3{background:#8e44ad;color:white}
+
+.it-module{background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:all .15s}
+.it-module:hover{border-color:rgba(255,255,255,0.12)}
+.it-module-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.it-module-title{font-size:14px;font-weight:700}
+.it-module ul{margin:0;padding-left:20px;list-style:none}
+.it-module ul li{font-size:12px;color:var(--t2);line-height:1.8;position:relative;padding-left:4px}
+.it-module ul li::before{content:'•';color:var(--t3);position:absolute;left:-14px}
+
+/* Phase 3 cards (Josué only) */
+.phase3-card{background:linear-gradient(135deg,rgba(142,68,173,0.08),rgba(142,68,173,0.02));border:1px solid rgba(142,68,173,0.25);border-radius:16px;padding:22px 24px;margin-bottom:14px;transition:all .15s}
+.phase3-card:hover{border-color:rgba(142,68,173,0.45);transform:translateY(-1px)}
+.phase3-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.phase3-card-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.phase3-card-title .icon{font-size:20px}
+.phase3-card ul{margin:0;padding-left:20px;list-style:none}
+.phase3-card ul li{font-size:12px;color:var(--t2);line-height:1.9;position:relative;padding-left:4px}
+.phase3-card ul li::before{content:'▸';color:var(--purple);position:absolute;left:-14px;font-weight:900}
+
+/* Timeline */
+.it-timeline{position:relative;padding-left:28px;margin:20px 0}
+.it-timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--red),var(--purple))}
+.it-timeline-item{position:relative;margin-bottom:20px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.it-timeline-item::before{content:'';position:absolute;left:-22px;top:18px;width:10px;height:10px;border-radius:50%;border:2px solid var(--red);background:var(--bg)}
+.it-timeline-item.future::before{border-color:var(--purple)}
+.it-timeline-label{font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:6px}
+.it-timeline-label.now{color:var(--red)}
+.it-timeline-label.future{color:var(--purple)}
+.it-timeline-item ul{margin:6px 0 0;padding-left:16px;list-style:none}
+.it-timeline-item ul li{font-size:12px;color:var(--t2);line-height:1.8;position:relative;padding-left:4px}
+.it-timeline-item ul li::before{content:'→';color:var(--t3);position:absolute;left:-14px}
+
+/* IT Messages section within the split view */
+.it-messages-section{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+.it-messages-section h3{font-size:14px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.it-msg-list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:14px;padding:4px}
+.it-msg-bubble{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;border-left:2px solid var(--red)}
+.it-msg-bubble.mine{border-left-color:var(--blue)}
+.it-msg-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.it-msg-author{font-size:11px;font-weight:700;color:var(--t2)}
+.it-msg-time{font-size:9px;color:var(--t3)}
+.it-msg-text{font-size:12px;color:var(--t);line-height:1.4}
+.it-msg-input-row{display:flex;gap:8px}
+.it-msg-input-row textarea{flex:1;min-height:50px;resize:none;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:white;font-size:12px;font-family:inherit;outline:none}
+.it-msg-input-row textarea:focus{border-color:var(--red)}
+.it-msg-input-row .btn{flex-shrink:0;align-self:flex-end}
+
+/* What we need section */
+.it-need-box{background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-top:16px;line-height:1.7;font-size:12px;color:var(--t2)}
+.it-need-box strong{color:var(--t);font-weight:700}
+
+/* Firebase notification toast */
+.firebase-toast{position:fixed;top:20px;right:20px;background:var(--s2);border:1px solid var(--red);border-radius:14px;padding:14px 20px;z-index:10000;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn .3s ease;max-width:380px}
+.firebase-toast .toast-icon{font-size:18px}
+.firebase-toast .toast-text{font-size:12px;font-weight:600;line-height:1.3}
+.firebase-toast .toast-author{color:var(--red);font-weight:800}
+.firebase-toast .toast-close{cursor:pointer;color:var(--t3);font-size:14px;margin-left:8px}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Section notification badge */
+.section-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--red);color:white;font-size:9px;font-weight:900;margin-left:6px;padding:0 5px;animation:badgePulse 1.5s infinite}
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* Connection status indicator */
+.firebase-status{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:6px}
+.firebase-status.connected{background:var(--green);box-shadow:0 0 6px var(--green)}
+.firebase-status.disconnected{background:var(--red);box-shadow:0 0 6px var(--red)}
+.firebase-status.connecting{background:var(--yellow);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ═══ MESSAGING MODULE ═══ */
+.msg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200}
+.msg-overlay.show{display:block}
+.msg-panel{position:fixed;right:0;top:0;bottom:0;width:520px;max-width:95vw;background:var(--s1);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
+.msg-panel.show{transform:translateX(0)}
+.msg-panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--s1);flex-shrink:0}
+.msg-panel-header h2{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.msg-badge{background:var(--red);color:white;font-size:10px;font-weight:900;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+.msg-list{flex:1;overflow-y:auto;padding:0}
+.msg-chat-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative}
+.msg-chat-item:hover{background:rgba(255,255,255,0.04)}
+.msg-chat-item.active{background:rgba(230,36,41,0.08);border-left:3px solid var(--red)}
+.msg-chat-item.unread{background:rgba(230,36,41,0.04)}
+.msg-avatar{width:40px;height:40px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--red);flex-shrink:0;border:2px solid var(--border)}
+.msg-chat-info{flex:1;min-width:0}
+.msg-chat-name{font-size:13px;font-weight:700;color:var(--t);margin-bottom:2px}
+.msg-chat-preview{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-chat-time{font-size:9px;color:var(--t3);position:absolute;top:14px;right:20px}
+.msg-chat-unread{position:absolute;bottom:14px;right:20px;background:var(--red);color:white;font-size:9px;font-weight:900;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* Chat Detail */
+.msg-detail{display:none;flex-direction:column;height:100%}
+.msg-detail.show{display:flex}
+.msg-detail-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.msg-back-btn{background:none;border:1px solid var(--border);color:var(--t2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.msg-back-btn:hover{border-color:var(--red);color:white}
+.msg-detail-name{font-size:14px;font-weight:800}
+.msg-detail-email{font-size:10px;color:var(--t3)}
+.msg-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.msg-bubble{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;font-weight:500;line-height:1.4;position:relative;word-wrap:break-word}
+.msg-bubble.user{background:var(--s3);align-self:flex-start;border-bottom-left-radius:4px}
+.msg-bubble.admin{background:var(--red);align-self:flex-end;border-bottom-right-radius:4px}
+.msg-bubble .msg-sender{font-size:9px;font-weight:800;color:var(--red);margin-bottom:4px}
+.msg-bubble.admin .msg-sender{color:rgba(255,255,255,0.6)}
+.msg-bubble .msg-time{font-size:8px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right}
+.msg-bubble img{max-width:100%;border-radius:8px;margin-bottom:6px;cursor:pointer}
+.msg-input-bar{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--s1)}
+.msg-input-bar textarea{flex:1;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:var(--s2);color:white;font-size:13px;font-weight:500;font-family:inherit;resize:none;min-height:40px;max-height:100px;outline:none}
+.msg-input-bar textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--rg)}
+.msg-input-bar .msg-send-btn{background:var(--red);border:none;color:white;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.msg-input-bar .msg-send-btn:hover{background:#c41f23;box-shadow:0 0 12px var(--rg)}
+.msg-input-bar .msg-send-btn:disabled{opacity:0.3;cursor:not-allowed}
+.msg-input-bar .msg-attach-btn{background:none;border:1px solid var(--border);color:var(--red);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.msg-input-bar .msg-attach-btn:hover{border-color:var(--red);background:rgba(230,36,41,0.08)}
+.msg-photo-preview{padding:8px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--s2)}
+.msg-photo-preview img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.msg-photo-preview .remove-photo{cursor:pointer;color:var(--red);font-size:14px}
+.msg-empty{padding:40px 20px;text-align:center;color:var(--t3);font-size:13px}
+.msg-topbar-btn{position:relative;padding:7px 14px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:var(--t);font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.msg-topbar-btn:hover{background:var(--s3);border-color:rgba(255,255,255,0.15)}
+.msg-topbar-btn .notif-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid var(--s1);display:none}
+.msg-topbar-btn .notif-dot.show{display:block}
+
+/* Photo zoom overlay */
+.photo-zoom-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:300;align-items:center;justify-content:center;cursor:pointer}
+.photo-zoom-overlay.show{display:flex}
+.photo-zoom-overlay img{max-width:90%;max-height:90%;border-radius:8px}
+</style>
+<!-- Firebase SDK (compat mode for single-file HTML) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-neon-left"></div>
+    <div class="login-neon-right"></div>
+    <div class="login-logo" id="loginLogo">TFG</div>
+    <h2><span>THE FITNESS</span> GARAGE</h2>
+    <div class="login-subtitle">PROGRAMA MAESTRO — PROJECT MANAGEMENT</div>
+    <div class="login-field">
+      <label>USUARIO / USERNAME</label>
+      <input type="text" id="loginUser" placeholder="Enter your username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>CONTRASEÑA / PASSWORD</label>
+      <input type="password" id="loginPass" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">ENTER</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-footer">THE FITNESS GARAGE &copy; 2026 — All Rights Reserved</div>
+  </div>
+</div>
+
+<!-- ═══ USER MANAGEMENT MODAL ═══ -->
+<div class="users-modal-overlay" id="usersModalOverlay" onclick="if(event.target===this)closeUsersModal()">
+  <div class="users-modal">
+    <h3><span id="usersModalTitle">Manage Users</span><button class="btn btn-sm" onclick="closeUsersModal()">✕</button></h3>
+    <div id="usersList"></div>
+    <div class="add-user-form" id="addUserForm">
+      <input type="text" id="newUserName" placeholder="Username">
+      <input type="password" id="newUserPass" placeholder="Password">
+      <select id="newUserRole">
+        <option value="dev">IT / Developer</option>
+        <option value="marketing">Marketing</option>
+      </select>
+      <button class="btn btn-red btn-sm" onclick="addUser()">+</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appContainer" style="display:none">
+  <!-- Firebase connection warning banner -->
+  <div id="firebaseBanner" style="display:none;background:rgba(230,36,41,0.15);border-bottom:1px solid var(--red);padding:8px 16px;font-size:11px;color:var(--red);font-weight:700;align-items:center;gap:8px">
+    ⚠️ Firebase no está conectado — Los comentarios no se sincronizan en tiempo real. Verifica las reglas de Firestore en la consola de Firebase.
+    <button onclick="this.parentElement.style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>
+  </div>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="logo-circle empty" id="logoCircle" onclick="document.getElementById('logoInput').click()" title="Click to upload logo">TFG</div>
+      <h1><span>TFG</span> <span id="appTitle">PROGRAMA MAESTRO</span></h1>
+    </div>
+    <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+    <div class="topbar-actions">
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="langEs" onclick="setLang('es')">ES</button>
+        <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      </div>
+      <input class="search-box" type="text" id="searchBox" oninput="render()">
+      <button class="btn btn-red" id="btnNewTask" onclick="openPanel()"></button>
+      <span id="ownerOnlyBtns">
+        <button class="btn" id="btnManageUsers" onclick="openUsersModal()">👥</button>
+        <button class="btn" id="btnExport" onclick="exportData()"></button>
+        <button class="btn" onclick="document.getElementById('importFile').click()" id="btnImport"></button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </span>
+      <div class="user-info-chip" id="userChip"></div>
+      <button class="msg-topbar-btn" onclick="openMessaging()" id="msgTopbarBtn" title="Messages">
+        💬 <span id="msgBtnLabel">Messages</span>
+        <span class="notif-dot" id="msgNotifDot"></span>
+      </button>
+      <span id="firebaseStatus" class="firebase-status connecting" title="Connecting to Firebase..."></span>
+      <button class="btn-logout" onclick="doLogout()" id="btnLogout">Logout</button>
+    </div>
+  </div>
+
+  <!-- ROLE BANNER -->
+  <div class="role-banner" id="roleBanner" style="display:none">
+    <span id="roleBannerText"></span>
+    <button class="exit-role" onclick="setRole('owner')" id="exitRoleBtn"></button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div>
+    <div class="toolbar" id="toolbar"></div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainContent"></div>
+</div>
+
+<!-- ═══ MESSAGING PANEL ═══ -->
+<div class="msg-overlay" id="msgOverlay" onclick="closeMessaging()"></div>
+<div class="msg-panel" id="msgPanel">
+  <!-- Conversations List View -->
+  <div id="msgListView">
+    <div class="msg-panel-header">
+      <h2>💬 Messages <span class="msg-badge" id="msgTotalBadge" style="display:none">0</span></h2>
+      <button class="btn btn-sm btn-icon" onclick="closeMessaging()">✕</button>
+    </div>
+    <div class="msg-list" id="msgChatList">
+      <div class="msg-empty">No conversations yet.<br>Users will appear here when they send messages from the app.</div>
+    </div>
+  </div>
+  <!-- Chat Detail View -->
+  <div class="msg-detail" id="msgDetailView">
+    <div class="msg-detail-header">
+      <button class="msg-back-btn" onclick="backToList()">←</button>
+      <div class="msg-avatar" id="msgDetailAvatar" style="width:36px;height:36px;font-size:12px">?</div>
+      <div>
+        <div class="msg-detail-name" id="msgDetailName">User</div>
+        <div class="msg-detail-email" id="msgDetailEmail">email@example.com</div>
+      </div>
+    </div>
+    <div class="msg-messages" id="msgMessages"></div>
+    <div class="msg-photo-preview" id="msgPhotoPreview" style="display:none">
+      <img id="msgPhotoThumb" src="">
+      <span style="font-size:11px;color:var(--t2)">Photo attached</span>
+      <span class="remove-photo" onclick="removeAdminPhoto()">✕</span>
+    </div>
+    <div class="msg-input-bar">
+      <button class="msg-attach-btn" onclick="document.getElementById('adminPhotoInput').click()" title="Attach photo">📷</button>
+      <input type="file" id="adminPhotoInput" accept="image/*" style="display:none" onchange="handleAdminPhoto(event)">
+      <textarea id="msgInput" placeholder="Type a reply..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
+      <button class="msg-send-btn" onclick="sendAdminMessage()" title="Send">▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Zoom Overlay -->
+<div class="photo-zoom-overlay" id="photoZoom" onclick="this.classList.remove('show')">
+  <img id="photoZoomImg" src="">
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <h2 id="panelTitle">Nueva Tarea</h2>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-sm" id="deleteTaskBtn" onclick="deleteTask()" style="color:var(--red);display:none"></button>
+      <button class="btn btn-sm btn-icon" onclick="closePanel()">✕</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <input type="hidden" id="editTaskId">
+    <div id="topSaveBtns" style="display:flex;gap:10px;margin-bottom:16px">
+      <button class="btn btn-red" style="flex:1;padding:12px" onclick="saveTask()" id="saveTaskBtnTop">Guardar Tarea</button>
+      <button class="btn" style="padding:12px" onclick="closePanel()">Cancelar</button>
+    </div>
+    <div class="field">
+      <label data-i18n="taskName">Nombre de la Tarea</label>
+      <input type="text" id="fTitle">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label data-i18n="area">Área</label>
+        <select id="fArea"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="phase">Fase</label>
+        <select id="fPhase"></select>
+      </div>
+    </div>
+    <div class="field-row" id="adminFieldRow1">
+      <div class="field">
+        <label data-i18n="priority">Prioridad</label>
+        <select id="fPriority"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="status">Estado</label>
+        <select id="fStatus"></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label data-i18n="startDate">Fecha Inicio</label>
+        <input type="date" id="fStart">
+      </div>
+      <div class="field">
+        <label data-i18n="endDate">Fecha Fin</label>
+        <input type="date" id="fEnd">
+      </div>
+    </div>
+    <div class="field">
+      <label data-i18n="progress">Progreso (%)</label>
+      <input type="range" id="fProgress" min="0" max="100" value="0" oninput="document.getElementById('fProgressLabel').textContent=this.value+'%'" style="width:100%">
+      <span id="fProgressLabel" style="font-size:12px;font-weight:800;color:var(--red)">0%</span>
+    </div>
+    <div class="field">
+      <label data-i18n="description">Descripción / Notas</label>
+      <textarea id="fDesc"></textarea>
+    </div>
+    <div class="field" id="adminFieldType">
+      <label data-i18n="type">Tipo</label>
+      <select id="fType"></select>
+    </div>
+    <div class="field" id="adminFieldDeps">
+      <label data-i18n="depsLabel">Depende de</label>
+      <div class="dep-chips" id="depChips"></div>
+      <div class="dep-add-row">
+        <select id="depSelect"></select>
+        <button class="btn btn-sm" onclick="addDep()" id="addDepBtn">+ Agregar</button>
+      </div>
+    </div>
+
+    <!-- COMMENTS SECTION -->
+    <div class="comments-section">
+      <div class="comments-title" data-i18n="commentsLabel">Comentarios</div>
+      <div class="comments-list" id="commentsList"></div>
+      <div class="comment-input-row">
+        <textarea id="commentInput" placeholder="Write a comment..." style="margin-bottom:0"></textarea>
+        <button class="btn btn-red" onclick="addComment()" id="addCommentBtn" style="padding:10px 14px">
+          <span data-i18n="send">Send</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-red" style="flex:1;padding:12px" onclick="saveTask()" id="saveTaskBtn">Guardar Tarea</button>
+      <button class="btn" style="padding:12px" onclick="closePanel()" id="cancelBtn">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ FIREBASE INITIALIZATION ════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAiylteoH3gpwjkeY8DwEtOmWG16c6iNUY",
+  authDomain: "the-fitness-garage-7a723.firebaseapp.com",
+  projectId: "the-fitness-garage-7a723",
+  storageBucket: "the-fitness-garage-7a723.firebasestorage.app",
+  messagingSenderId: "888707589474",
+  appId: "1:888707589474:web:71a88f77ea149f4c72b83b",
+  measurementId: "G-DVGFXW06FF"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storageRef = firebase.storage();
+let firestoreConnected = false;
+let firestoreListener = null; // onSnapshot unsubscribe function
+let sectionUnreadCounts = {}; // {areaId: count} for toolbar badges
+
+// ═══ AUTHENTICATION SYSTEM ══════════════════════════════════
+let currentUser = null; // {username, role, displayName}
+
+// Default users - owner is always present
+let users = [
+  {username:'josue', password:'TFG2026!', role:'owner', displayName:'Josué Hernandez'},
+  {username:'binaryclouds', password:'dev2026', role:'dev', displayName:'BinaryClouds'},
+];
+
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim().toLowerCase();
+  const p=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginError');
+  if(!u||!p){err.textContent='Enter username and password';return}
+  const user=users.find(x=>x.username.toLowerCase()===u && x.password===p);
+  if(!user){err.textContent='Invalid credentials';return}
+  currentUser=user;
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('appContainer').style.display='';
+  // Set role-based filtering
+  if(user.role==='dev'){currentRole='dev';activeArea='it-web';currentView='scope'}
+  else if(user.role==='marketing'){currentRole='marketing';activeArea='marketing'}
+  else{currentRole='owner';activeArea='all'}
+  // Set default language based on role
+  if(user.role==='dev')setLang('en');
+  // Hide owner-only buttons for non-owners
+  document.getElementById('ownerOnlyBtns').style.display=user.role==='owner'?'':'none';
+  // Hide new task button for non-admins
+  document.getElementById('btnNewTask').style.display=user.role==='owner'?'':'none';
+  updateUserChip();
+  updateStaticUI();
+  // Load last-seen data for this user and start Firebase listener
+  loadLastSeenComments();
+  setupFirestoreListener();
+  // Start messaging listener for real-time chat notifications
+  startMsgListener();
+  render();
+  // Scroll gantt to today
+  setTimeout(()=>{const tl=document.querySelector('.today-line');if(tl)tl.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})},400);
+}
+
+function doLogout(){
+  // Unsubscribe from Firestore listeners
+  if(firestoreListener){firestoreListener();firestoreListener=null}
+  if(msgListener){msgListener();msgListener=null}
+  if(msgMsgListener){msgMsgListener();msgMsgListener=null}
+  closeMessaging();
+  currentUser=null;
+  lastSeenComments={};
+  sectionUnreadCounts={};
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('appContainer').style.display='none';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginError').textContent='';
+}
+
+function updateUserChip(){
+  if(!currentUser)return;
+  const chip=document.getElementById('userChip');
+  // Show "TFG IT Member" for dev users instead of their internal name
+  const displayLabel = currentUser.role === 'dev' ? 'TFG IT Member' : currentUser.displayName;
+  const initial = displayLabel.charAt(0).toUpperCase();
+  chip.innerHTML=`<div class="avatar role-${currentUser.role}">${initial}</div>${displayLabel}`;
+}
+
+// ═══ USER MANAGEMENT (owner only) ═══════════════════════════
+function openUsersModal(){
+  if(!currentUser||currentUser.role!=='owner')return;
+  renderUsersList();
+  document.getElementById('usersModalOverlay').classList.add('show');
+}
+function closeUsersModal(){document.getElementById('usersModalOverlay').classList.remove('show')}
+
+function renderUsersList(){
+  const el=document.getElementById('usersList');
+  const roleLabels={owner:'OWNER',dev:'IT / DEV',marketing:'MARKETING'};
+  el.innerHTML=users.map((u,i)=>`
+    <div class="user-row">
+      <div class="user-name">${u.displayName}</div>
+      <div class="user-role role-${u.role}">${roleLabels[u.role]}</div>
+      <div class="user-pass">${u.username} / ${'•'.repeat(u.password.length)}</div>
+      <div class="user-actions">
+        ${u.role!=='owner'?`<button onclick="toggleShowPass(this,'${u.password}')">👁</button><button class="del" onclick="removeUser(${i})">✕</button>`:'<span style="font-size:10px;color:var(--t3)">admin</span>'}
+      </div>
+    </div>`).join('');
+}
+
+function toggleShowPass(btn,pass){
+  const row=btn.closest('.user-row');
+  const passEl=row.querySelector('.user-pass');
+  if(passEl.dataset.shown==='1'){passEl.textContent=passEl.dataset.orig;passEl.dataset.shown='0';btn.textContent='👁'}
+  else{passEl.dataset.orig=passEl.textContent;passEl.textContent=passEl.textContent.split(' / ')[0]+' / '+pass;passEl.dataset.shown='1';btn.textContent='🙈'}
+}
+
+function addUser(){
+  const name=document.getElementById('newUserName').value.trim();
+  const pass=document.getElementById('newUserPass').value;
+  const role=document.getElementById('newUserRole').value;
+  if(!name||!pass){alert('Username and password required');return}
+  if(users.find(u=>u.username.toLowerCase()===name.toLowerCase())){alert('Username already exists');return}
+  users.push({username:name,password:pass,role:role,displayName:name});
+  document.getElementById('newUserName').value='';
+  document.getElementById('newUserPass').value='';
+  renderUsersList();
+}
+
+function removeUser(idx){
+  if(users[idx].role==='owner')return;
+  if(!confirm(`Remove user "${users[idx].displayName}"?`))return;
+  users.splice(idx,1);
+  renderUsersList();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TFG PROGRAMA MAESTRO — Complete Master Program
+// With Comments, Logo, Role-based Views, and i18n
+// ═══════════════════════════════════════════════════════════════
+
+// ═══ GLOBAL STATE ═══════════════════════════════════════════════
+let lang = 'es';
+let currentRole = 'owner'; // owner | dev | marketing
+let logoBase64 = null;
+let lastSeenComments = {}; // {taskId: timestamp}
+
+// Role defaults
+const ROLE_DEFAULTS = {
+  owner: { name: 'Josué', areas: null },
+  dev: { name: 'BinaryClouds', areas: ['it-web', 'it-appweb'] },
+  marketing: { name: 'Marketing Team', areas: ['marketing'] }
+};
+
+// Auto-translation dictionary
+const TRANSLATIONS = {
+  'Stripe': { es: 'Stripe', en: 'Stripe' },
+  'payment': { es: 'pago', en: 'payment' },
+  'deploy': { es: 'desplegar', en: 'deploy' },
+  'API': { es: 'API', en: 'API' },
+  'testing': { es: 'testing', en: 'testing' },
+  'launch': { es: 'lanzamiento', en: 'launch' },
+  'development': { es: 'desarrollo', en: 'development' },
+  'module': { es: 'módulo', en: 'module' },
+  'feature': { es: 'feature', en: 'feature' }
+};
+
+const i18n = {
+  es: {
+    appTitle: 'PROGRAMA MAESTRO',
+    newTask: '+ Nueva Tarea',
+    export: 'Exportar',
+    import: 'Importar',
+    search: 'Buscar tarea...',
+    all: 'TODOS',
+    gantt: '📊 Gantt',
+    flow: '🔀 Flujo',
+    total: 'Total',
+    inProgress: 'En Progreso',
+    blocked: 'Bloqueadas',
+    completed: 'Completadas',
+    critical: 'Críticas',
+    milestones: 'Hitos',
+    avgProgress: 'Progreso Promedio',
+    taskCol: 'TAREA',
+    start: 'INICIO',
+    end: 'FIN',
+    today: 'HOY',
+    dependsOn: 'Depende de:',
+    days: ['Do','Lu','Ma','Mi','Ju','Vi','Sa'],
+    // Panel
+    editTask: 'Editar Tarea',
+    newTaskTitle: 'Nueva Tarea',
+    delete: 'Eliminar',
+    taskName: 'Nombre de la Tarea',
+    taskPlaceholder: '¿Qué se necesita hacer?',
+    area: 'Área',
+    phase: 'Fase',
+    priority: 'Prioridad',
+    status: 'Estado',
+    startDate: 'Fecha Inicio',
+    endDate: 'Fecha Fin',
+    progress: 'Progreso (%)',
+    description: 'Descripción / Notas',
+    descPlaceholder: 'Detalle, contexto, qué datos se necesitan...',
+    type: 'Tipo',
+    typeTask: 'Tarea',
+    typeMilestone: 'Hito / Milestone',
+    depsLabel: 'Depende de (esta tarea no puede empezar hasta que se completen las siguientes)',
+    selectTask: '— Seleccionar tarea —',
+    addDep: '+ Agregar',
+    save: 'Guardar Tarea',
+    cancel: 'Cancelar',
+    deleteConfirm: '¿Eliminar esta tarea?',
+    invalidFile: 'Archivo inválido',
+    // Priorities
+    priCritical: '🔴 Crítica',
+    priHigh: '🟠 Alta',
+    priMedium: '🟡 Media',
+    priLow: '🟢 Baja',
+    // Statuses
+    stBlocked: '🚫 Bloqueada',
+    stPending: '⏳ Pendiente',
+    stProgress: '⚡ En Progreso',
+    stDone: '✅ Completada',
+    // Comments
+    commentsLabel: 'Comentarios',
+    send: 'Enviar',
+    originalIn: 'Original en',
+    spanish: 'Español',
+    english: 'Inglés',
+    devPanel: 'PANEL TFG IT MEMBER',
+    marketingPanel: 'MARKETING',
+  },
+  en: {
+    appTitle: 'MASTER PROGRAM',
+    newTask: '+ New Task',
+    export: 'Export',
+    import: 'Import',
+    search: 'Search task...',
+    all: 'ALL',
+    gantt: '📊 Gantt',
+    flow: '🔀 Flow',
+    total: 'Total',
+    inProgress: 'In Progress',
+    blocked: 'Blocked',
+    completed: 'Completed',
+    critical: 'Critical',
+    milestones: 'Milestones',
+    avgProgress: 'Avg Progress',
+    taskCol: 'TASK',
+    start: 'START',
+    end: 'END',
+    today: 'TODAY',
+    dependsOn: 'Depends on:',
+    days: ['Su','Mo','Tu','We','Th','Fr','Sa'],
+    // Panel
+    editTask: 'Edit Task',
+    newTaskTitle: 'New Task',
+    delete: 'Delete',
+    taskName: 'Task Name',
+    taskPlaceholder: 'What needs to be done?',
+    area: 'Area',
+    phase: 'Phase',
+    priority: 'Priority',
+    status: 'Status',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    progress: 'Progress (%)',
+    description: 'Description / Notes',
+    descPlaceholder: 'Details, context, what data is needed...',
+    type: 'Type',
+    typeTask: 'Task',
+    typeMilestone: 'Milestone',
+    depsLabel: 'Depends on (this task cannot start until the following are completed)',
+    selectTask: '— Select task —',
+    addDep: '+ Add',
+    save: 'Save Task',
+    cancel: 'Cancel',
+    deleteConfirm: 'Delete this task?',
+    invalidFile: 'Invalid file',
+    // Priorities
+    priCritical: '🔴 Critical',
+    priHigh: '🟠 High',
+    priMedium: '🟡 Medium',
+    priLow: '🟢 Low',
+    // Statuses
+    stBlocked: '🚫 Blocked',
+    stPending: '⏳ Pending',
+    stProgress: '⚡ In Progress',
+    stDone: '✅ Completed',
+    // Comments
+    commentsLabel: 'Comments',
+    send: 'Send',
+    originalIn: 'Original in',
+    spanish: 'Spanish',
+    english: 'English',
+    devPanel: 'TFG IT MEMBER PANEL',
+    marketingPanel: 'MARKETING',
+  }
+};
+
+function T(key) { return i18n[lang][key] || key; }
+
+function setLang(l) {
+  lang = l;
+  document.getElementById('langEs').classList.toggle('active', l === 'es');
+  document.getElementById('langEn').classList.toggle('active', l === 'en');
+  updateStaticUI();
+  render();
+}
+
+function setRole(role) {
+  currentRole = role;
+  updateStaticUI();
+  render();
+}
+
+function updateStaticUI() {
+  const title = currentRole === 'dev' ? T('devPanel') :
+                currentRole === 'marketing' ? T('marketingPanel') :
+                T('appTitle');
+  document.getElementById('appTitle').textContent = title;
+  document.getElementById('btnNewTask').textContent = T('newTask');
+  document.getElementById('btnExport').textContent = T('export');
+  document.getElementById('btnImport').textContent = T('import');
+  document.getElementById('searchBox').placeholder = T('search');
+
+  // Update role banner
+  const banner = document.getElementById('roleBanner');
+  if (currentRole !== 'owner') {
+    banner.style.display = 'flex';
+    banner.className = 'role-banner role-' + currentRole;
+    document.getElementById('roleBannerText').textContent =
+      currentRole === 'dev' ? 'TFG IT MEMBER (IT/Web + IT/App)' : 'MARKETING PANEL';
+    document.getElementById('exitRoleBtn').textContent = '🏠 Owner View';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    logoBase64 = e.target.result;
+    const circle = document.getElementById('logoCircle');
+    circle.classList.remove('empty');
+    circle.innerHTML = `<img src="${logoBase64}">`;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+const AREAS_DATA = [
+  {id:'legal',color:'var(--yellow)',hex:'#F0C000',es:'LEGAL',en:'LEGAL'},
+  {id:'it-web',color:'var(--blue)',hex:'#58A6FF',es:'IT / WEB',en:'IT / WEB'},
+  {id:'it-app',color:'var(--cyan)',hex:'#56D4DD',es:'IT / APP iOS',en:'IT / APP iOS'},
+  {id:'marketing',color:'var(--purple)',hex:'#BC8CFF',es:'MARKETING',en:'MARKETING'},
+  {id:'finance',color:'var(--green)',hex:'#34D058',es:'FINANZAS',en:'FINANCE'},
+  {id:'operations',color:'var(--orange)',hex:'#F78166',es:'OPERACIONES',en:'OPERATIONS'},
+  {id:'it-appweb',color:'#00CED1',hex:'#00CED1',es:'IT/APP Conexión APP-WEB',en:'IT/APP APP-WEB Connection'},
+  {id:'it-launch',color:'#FF6B9D',hex:'#FF6B9D',es:'IT/APP Desarrollo y Lanzamiento',en:'IT/APP Dev & Launch'},
+  {id:'ai-infra',color:'#9B59B6',hex:'#9B59B6',es:'IA & AUTOMATIZACIÓN',en:'AI & AUTOMATION'},
+  {id:'server',color:'#1ABC9C',hex:'#1ABC9C',es:'SERVIDOR & MIGRACIÓN',en:'SERVER & MIGRATION'}
+];
+
+const PHASES_DATA = [
+  {id:'phase0',es:'Pre-Launch (Ahora)',en:'Pre-Launch (Now)'},
+  {id:'phase1',es:'Launch (Mes 1-2)',en:'Launch (Month 1-2)'},
+  {id:'phase2',es:'Growth (Mes 3-6)',en:'Growth (Month 3-6)'},
+  {id:'phase3',es:'Scale (Mes 6-12)',en:'Scale (Month 6-12)'},
+  {id:'phase4',es:'Expansión (Año 2)',en:'Expansion (Year 2)'}
+];
+
+function getAREAS() { return AREAS_DATA.map(a=>({...a,label:a[lang]})); }
+function getPHASES() { return PHASES_DATA.map(p=>({...p,label:p[lang]})); }
+
+let AREAS = getAREAS();
+let PHASES = getPHASES();
+
+function refreshLangData() { AREAS = getAREAS(); PHASES = getPHASES(); }
+
+let currentView = 'gantt';
+let activeArea = 'all';
+let nextId = 200;
+let editDeps = [];
+
+// ═══ INITIAL TASKS — ALL 35 TASKS ═══════════════════════════════
+let tasks = [
+  // ─── LEGAL (IDs 1-5) ─────────────────────────────────────────
+  {id:1,title:'Registrar IP/Copyright en Texas',area:'legal',phase:'phase0',priority:'critical',status:'progress',start:'2026-03-24',end:'2026-04-07',progress:30,type:'task',deps:[],desc:'PRIORIDAD #1. Contactar abogado de IP en Texas. Proteger idea de negocio de Josué y Frank. Incluir: concepto de plataforma, modelo Mirror Weeks, sistema de voz dual, metodología de entrenamiento TFG.',comments:[]},
+  {id:2,title:'Comprar código fuente Fase 1 a BinaryClouds',area:'legal',phase:'phase0',priority:'critical',status:'pending',start:'2026-04-01',end:'2026-04-14',progress:0,type:'task',deps:[1],desc:'TFG no es dueño del código actual. Negociar precio de compra. Incluir: código fuente completo, base de datos, configuraciones de deploy, documentación técnica. SIN ESTO NO SE PUEDE AVANZAR CON CONTRATO NUEVO.',comments:[]},
+  {id:3,title:'Redactar contrato propio TFG para BinaryClouds',area:'legal',phase:'phase0',priority:'high',status:'blocked',start:'2026-04-14',end:'2026-04-28',progress:0,type:'task',deps:[1,2],desc:'Contrato bajo TFG (no bajo BinaryClouds). Cláusulas: propiedad IP de todo código nuevo, salario mensual, entregables definidos, acceso a repositorio, NDA. Revisar con abogado.',comments:[]},
+  {id:4,title:'⬥ IP Registrada + Código Adquirido',area:'legal',phase:'phase0',priority:'critical',status:'blocked',start:'2026-04-28',end:'2026-04-28',progress:0,type:'milestone',deps:[1,2,3],desc:'HITO: La propiedad intelectual está protegida y TFG es dueño del código. A partir de aquí se puede invertir con seguridad.',comments:[]},
+  {id:5,title:'Revisar y finalizar Términos y Condiciones',area:'legal',phase:'phase1',priority:'medium',status:'pending',start:'2026-04-28',end:'2026-05-12',progress:0,type:'task',deps:[4],desc:'Documentos existentes en 01_Legal/Terminos y condiciones/. Necesitan revisión legal para cumplir con regulaciones de Texas y pagos online.',comments:[]},
+
+  // ─── IT / WEB (IDs 10-29) ────────────────────────────────────
+  {id:10,title:'Habilitar pagos ACH + Tarjeta de Crédito (Stripe)',area:'it-web',phase:'phase0',priority:'critical',status:'pending',start:'2026-03-24',end:'2026-04-04',progress:0,type:'task',deps:[],desc:'BLOQUEA EL LANZAMIENTO. Actualmente opciones de pago limitadas. Configurar en Stripe: ACH bank transfer + credit/debit card. Probar con transacciones de prueba. Esto es independiente del tema legal — se puede hacer YA.',comments:[]},
+  {id:11,title:'Testing completo de flujo de pago end-to-end',area:'it-web',phase:'phase0',priority:'high',status:'blocked',start:'2026-04-04',end:'2026-04-08',progress:0,type:'task',deps:[10],desc:'Probar: registro usuario → seleccionar plan → pago ACH → confirmación. Probar: pago con tarjeta → recibo → On Hold → Reactivate. Verificar doble confirmación en acciones de dinero.',comments:[]},
+  {id:12,title:'⬥ Plataforma Lista para Lanzamiento',area:'it-web',phase:'phase0',priority:'critical',status:'blocked',start:'2026-04-08',end:'2026-04-08',progress:0,type:'milestone',deps:[10,11],desc:'HITO: La plataforma web puede recibir pagos reales. A partir de aquí se puede hacer soft launch.',comments:[]},
+
+  {id:20,title:'Fase 2: Online Membership + Calendar Split',area:'it-web',phase:'phase2',priority:'high',status:'pending',start:'2026-05-01',end:'2026-06-15',progress:0,type:'task',deps:[4,12],desc:'MÓDULO: Dividir calendario en bloques de 30 min (online) y 1 hora (presencial) en el MISMO calendario. Auto-generar link de videollamada. Review Week: usuarios online solo pueden VER la semana actual, no reservar. Datos necesarios: tipos de sesión online vs presencial, configuración de links, lógica de Review Week.',comments:[]},
+  {id:21,title:'Fase 2: Training Module (Exercise Library + Routine Builder)',area:'it-web',phase:'phase2',priority:'high',status:'pending',start:'2026-05-15',end:'2026-07-15',progress:0,type:'task',deps:[4],desc:'MÓDULO GRANDE. 4 sub-componentes:\n1) Exercise Library: catálogo de ejercicios con video/GIF, búsqueda por músculo/tipo\n2) TFG Training Lab (Routine Builder): crear rutinas arrastrando ejercicios, definir series/reps/descanso\n3) Weekly Routine Assignment: asignar rutina a cliente por semana\n4) User Workout View: reproducción secuencial de ejercicios con timer entre series\nDatos: nombre ejercicio, grupo muscular, equipo, video URL, instrucciones.',comments:[]},
+  {id:22,title:'Fase 2: Internal Messaging (Chat)',area:'it-web',phase:'phase2',priority:'medium',status:'pending',start:'2026-06-15',end:'2026-07-15',progress:0,type:'task',deps:[4],desc:'MÓDULO OPCIONAL — se pidieron 2 cotizaciones (con y sin chat). Chat directo trainer↔cliente. Mensajes de texto, posiblemente imágenes. Notificaciones.',comments:[]},
+  {id:23,title:'Fase 2: Role-Based Access Control',area:'it-web',phase:'phase2',priority:'medium',status:'pending',start:'2026-05-01',end:'2026-05-30',progress:0,type:'task',deps:[4],desc:'MÓDULO: 2 roles:\n- General Manager: acceso total a todo el admin\n- Trainer: solo ve SU calendario, SUS clientes, SUS bookings\nDatos: tabla de permisos por rol, asignación de rol al crear trainer.',comments:[]},
+  {id:24,title:'Fase 2: Nutrition Tracker History',area:'it-web',phase:'phase2',priority:'low',status:'pending',start:'2026-06-01',end:'2026-06-20',progress:0,type:'task',deps:[4],desc:'MÓDULO: Actualmente el tracker se resetea diario. Agregar almacenamiento por fecha para ver historial. Base para analytics y Weekly Report.',comments:[]},
+  {id:25,title:'Fase 2: Weekly Auto-Report',area:'it-web',phase:'phase2',priority:'medium',status:'pending',start:'2026-06-20',end:'2026-07-10',progress:0,type:'task',deps:[24],desc:'MÓDULO: Reporte semanal auto-generado con:\n- % de workouts completados\n- Consistencia de logging de nutrición\n- Adherencia a macros (calorías, proteína, carbs, grasa)\n- Tendencia de peso\nSe genera cada lunes con datos de la semana anterior.',comments:[]},
+  {id:26,title:'Fase 2: AI Food Logging',area:'it-web',phase:'phase2',priority:'low',status:'pending',start:'2026-07-01',end:'2026-07-30',progress:0,type:'task',deps:[24],desc:'MÓDULO: Enviar texto o foto de comida → API estima macros automáticamente. Cotización separada. Opciones: OpenAI Vision, Google Gemini, o API especializada como Nutritionix.',comments:[]},
+  {id:27,title:'Fase 2: Manual Invoice Adjustment',area:'it-web',phase:'phase2',priority:'low',status:'pending',start:'2026-05-15',end:'2026-05-30',progress:0,type:'task',deps:[4,12],desc:'MÓDULO: Ajustar facturas de Stripe directamente desde la plataforma admin. Para descuentos, créditos, correcciones.',comments:[]},
+  {id:28,title:'Fase 2: Completar Group Classes',area:'it-web',phase:'phase2',priority:'medium',status:'pending',start:'2026-06-01',end:'2026-06-30',progress:0,type:'task',deps:[4],desc:'MÓDULO: Terminar módulo empezado en Fase 1. Clases grupales con capacidad, horario, registro de asistentes.',comments:[]},
+  {id:29,title:'⬥ Fase 2 Web Completada',area:'it-web',phase:'phase2',priority:'high',status:'blocked',start:'2026-07-31',end:'2026-07-31',progress:0,type:'milestone',deps:[20,21,22,23,24,25,26,27,28],desc:'HITO: Todos los módulos de Fase 2 desarrollados y testeados. Plataforma completa.',comments:[]},
+
+  // ─── IT / APP iOS (IDs 40-46) ────────────────────────────────
+  {id:40,title:'App: Build Nutrition Tracker',area:'it-app',phase:'phase0',priority:'high',status:'pending',start:'2026-03-28',end:'2026-04-08',progress:0,type:'task',deps:[],desc:'Reemplazar TrackerPlaceholderView. Conectar a API /api/admin/nutritionDailyMeals. Logging diario de comidas con macros (cal, protein, carbs, fat). Reset diario. UI consistente con estilo TFG (dark, red accent).',comments:[]},
+  {id:41,title:'App: Build Book Session',area:'it-app',phase:'phase0',priority:'high',status:'pending',start:'2026-04-08',end:'2026-04-18',progress:0,type:'task',deps:[40],desc:'Reemplazar BookSessionPlaceholderView. Mostrar slots disponibles del trainer por día. Permitir reservar slot. Confirmar booking. Integrar con API de bookings del web.',comments:[]},
+  {id:42,title:'App: Build My Bookings',area:'it-app',phase:'phase0',priority:'high',status:'pending',start:'2026-04-08',end:'2026-04-15',progress:0,type:'task',deps:[40],desc:'Reemplazar MyBookingsPlaceholderView. Tabs: Upcoming / Past. Mostrar fecha, hora, tipo de sesión, trainer. Opción de cancelar (con doble confirmación).',comments:[]},
+  {id:43,title:'App: Build Subscription Plans',area:'it-app',phase:'phase1',priority:'medium',status:'pending',start:'2026-04-18',end:'2026-04-28',progress:0,type:'task',deps:[41,42],desc:'Reemplazar PlansPlaceholderView. Mostrar planes disponibles (One-on-One $200/week, Fitness Tracker $199/month, etc). Estado de suscripción actual. NO incluir On Hold/Reactivate en app (solo web admin).',comments:[]},
+  {id:44,title:'⬥ App iOS iguala Fase 1 Web',area:'it-app',phase:'phase1',priority:'high',status:'blocked',start:'2026-04-28',end:'2026-04-28',progress:0,type:'milestone',deps:[40,41,42,43],desc:'HITO: La app iOS tiene todos los módulos equivalentes a Fase 1 del web. Usuario puede hacer todo desde el teléfono.',comments:[]},
+  {id:45,title:'App: Build Workouts Module (Phase 2)',area:'it-app',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-15',end:'2026-08-15',progress:0,type:'task',deps:[21,44],desc:'Depende de que el Training Module del web esté listo (APIs). Reemplazar WorkoutsPlaceholderView. Reproducción secuencial de ejercicios, timer, log de reps/peso.',comments:[]},
+  {id:46,title:'App: Build Chat Module (Phase 2)',area:'it-app',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-15',end:'2026-08-01',progress:0,type:'task',deps:[22,44],desc:'Depende de que Chat del web esté listo. Reemplazar ChatPlaceholderView. Mensajería directa trainer↔cliente.',comments:[]},
+
+  // ─── OPERATIONS (IDs 50-52) ───────────────────────────────────
+  {id:50,title:'Soft Launch: 5-10 clientes beta',area:'operations',phase:'phase1',priority:'high',status:'blocked',start:'2026-04-10',end:'2026-04-25',progress:0,type:'task',deps:[12],desc:'Invitar 5-10 personas de confianza. Probar flujo completo: registro → pago → booking → sesión → nutrición. Recopilar feedback. Corregir bugs.',comments:[]},
+  {id:51,title:'⬥ Primer ingreso real de la plataforma',area:'operations',phase:'phase1',priority:'critical',status:'blocked',start:'2026-04-25',end:'2026-04-25',progress:0,type:'milestone',deps:[50],desc:'HITO CLAVE: TFG genera su primer dólar real. Validación del modelo de negocio.',comments:[]},
+  {id:52,title:'Lanzamiento público',area:'operations',phase:'phase1',priority:'high',status:'blocked',start:'2026-05-01',end:'2026-05-15',progress:0,type:'task',deps:[51,60],desc:'Abrir registro público. Campaña de marketing activa. Objetivo: 50 usuarios primer mes.',comments:[]},
+
+  // ─── MARKETING (IDs 60-64) ───────────────────────────────────
+  {id:60,title:'Crear estrategia de marketing pre-launch',area:'marketing',phase:'phase0',priority:'high',status:'pending',start:'2026-03-28',end:'2026-04-10',progress:0,type:'task',deps:[],desc:'Definir: audiencia target, canales (Instagram, TikTok, YouTube), mensaje principal, calendario de contenido. Usar transformaciones como prueba social. ESTO SE PUEDE HACER EN PARALELO al desarrollo.',comments:[]},
+  {id:61,title:'Producir contenido de transformaciones',area:'marketing',phase:'phase0',priority:'high',status:'pending',start:'2026-04-01',end:'2026-04-15',progress:0,type:'task',deps:[60],desc:'Editar videos/fotos de: Josué (110+ lbs perdidas), clientes (160+ lbs). Before/after. Crear reels, stories, posts. Material está en 03_Marketing/Fotos/ y Videos/.',comments:[]},
+  {id:62,title:'Configurar redes sociales de TFG',area:'marketing',phase:'phase0',priority:'medium',status:'pending',start:'2026-04-01',end:'2026-04-08',progress:0,type:'task',deps:[60],desc:'Instagram business, TikTok, YouTube channel. Bio, links, branding consistente. Logo de 06_Branding/.',comments:[]},
+  {id:63,title:'Campaña de lanzamiento',area:'marketing',phase:'phase1',priority:'high',status:'blocked',start:'2026-04-25',end:'2026-05-15',progress:0,type:'task',deps:[51,61,62],desc:'Activar campaña con el soft launch validado. Testimonios reales de beta users. Paid ads si hay budget. Influencer fitness partnerships.',comments:[]},
+  {id:64,title:'⬥ 100 usuarios activos',area:'marketing',phase:'phase2',priority:'high',status:'blocked',start:'2026-06-30',end:'2026-06-30',progress:0,type:'milestone',deps:[52,63],desc:'HITO: 100 usuarios pagando. Punto de tracción para buscar inversión.',comments:[]},
+
+  // ─── FINANZAS (IDs 70-73) ────────────────────────────────────
+  {id:70,title:'Documentar todos los gastos del proyecto a la fecha',area:'finance',phase:'phase0',priority:'medium',status:'pending',start:'2026-03-28',end:'2026-04-07',progress:0,type:'task',deps:[],desc:'BinaryClouds fees, hosting, dominio, Stripe fees, Apple Developer ($99/yr), OpenAI API, herramientas. Necesario para proyecciones financieras.',comments:[]},
+  {id:71,title:'Crear proyecciones financieras',area:'finance',phase:'phase1',priority:'medium',status:'blocked',start:'2026-04-28',end:'2026-05-10',progress:0,type:'task',deps:[51,70],desc:'Con datos reales del soft launch: revenue por usuario, CAC, churn rate, MRR proyectado. Escenarios: conservador, moderado, agresivo.',comments:[]},
+  {id:72,title:'Preparar pitch deck para inversionistas',area:'finance',phase:'phase2',priority:'high',status:'blocked',start:'2026-05-15',end:'2026-06-01',progress:0,type:'task',deps:[71,64],desc:'Con métricas reales, no proyecciones. Problema→Solución→Mercado→Tracción→Modelo→Equipo→Ask. Usar datos de usuarios reales.',comments:[]},
+  {id:73,title:'⬥ Listo para buscar inversión',area:'finance',phase:'phase2',priority:'critical',status:'blocked',start:'2026-06-01',end:'2026-06-01',progress:0,type:'milestone',deps:[4,72],desc:'HITO: IP protegida + usuarios reales + proyecciones + pitch deck. Posición de fuerza para negociar inversión.',comments:[]},
+
+  // ─── IT/APP CONEXIÓN APP-WEB (IDs 80-86) — Vista limitada para developers ──
+  {id:80,title:'Sync: Book Session iOS ↔ Web API',area:'it-appweb',phase:'phase0',priority:'critical',status:'progress',start:'2026-03-20',end:'2026-04-05',progress:75,type:'task',deps:[],desc:'Conectar BookSessionView.swift con Firestore real-time listeners. Escritura de bookings desde iOS aparece en dashboard web como "Extra Session" (naranja). Auto-refresh cada 10 segundos.',comments:[]},
+  {id:81,title:'Sync: Weight Progress iOS ↔ Web API',area:'it-appweb',phase:'phase0',priority:'high',status:'progress',start:'2026-03-20',end:'2026-04-02',progress:80,type:'task',deps:[],desc:'Conectar WeightProgressCard con /api/admin/weight-logs. Datos de peso sincronizados entre app y web. Gráfica interactiva con filtros temporales.',comments:[]},
+  {id:82,title:'Sync: Nutrition Tracker iOS ↔ Web API',area:'it-appweb',phase:'phase1',priority:'high',status:'pending',start:'2026-04-10',end:'2026-04-25',progress:0,type:'task',deps:[],desc:'Conectar MealPlannerView con /api/admin/nutritionDailyMeals. Macros, recetas y registro diario sincronizado.',comments:[]},
+  {id:83,title:'Sync: Training Module iOS ↔ Web API',area:'it-appweb',phase:'phase2',priority:'high',status:'blocked',start:'2026-07-15',end:'2026-08-10',progress:0,type:'task',deps:[21],desc:'Depende de que BinaryClouds termine el Training Module web. Conectar ejercicios, rutinas y asignación semanal con la app iOS.',comments:[]},
+  {id:84,title:'Sync: Chat System iOS ↔ Web',area:'it-appweb',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-15',end:'2026-08-01',progress:0,type:'task',deps:[22],desc:'Depende de que Chat web esté listo. Implementar Firebase Firestore real-time messaging entre app y web.',comments:[]},
+  {id:85,title:'⬥ Sincronización APP-WEB Completa',area:'it-appweb',phase:'phase2',priority:'critical',status:'blocked',start:'2026-08-15',end:'2026-08-15',progress:0,type:'milestone',deps:[80,81,82,83,84],desc:'HITO: Todos los módulos sincronizados bidireccional entre iOS y Web.',comments:[]},
+
+  // ─── IT/APP DESARROLLO Y LANZAMIENTO (IDs 100-115) — Detalle completo solo Owner ──
+  {id:100,title:'iOS: Login Cosmic UI Redesign',area:'it-launch',phase:'phase0',priority:'high',status:'done',start:'2026-03-24',end:'2026-03-26',progress:100,type:'task',deps:[],desc:'COMPLETADO. Shockwave rings, orbital comets, meteorite field, diamond slogan. TimelineView + Canvas para animaciones fluidas.',comments:[]},
+  {id:101,title:'iOS: Voice System TFG ACCESS',area:'it-launch',phase:'phase0',priority:'high',status:'done',start:'2026-03-20',end:'2026-03-26',progress:100,type:'task',deps:[],desc:'COMPLETADO. Dual-engine: Apple Speech (free, on-device) + OpenAI (paid) para razonamiento. TFG ACCESS mode con animaciones Canvas a 60fps.',comments:[]},
+  {id:102,title:'iOS: Real-Time Calendar Sync (v2.16)',area:'it-launch',phase:'phase0',priority:'critical',status:'done',start:'2026-03-15',end:'2026-03-25',progress:100,type:'task',deps:[],desc:'COMPLETADO. Panel scanner que lee TODOS los datos de slots de Firestore. Auto-refresh cada 10s. Bookings escriben a Firestore como Extra Session.',comments:[]},
+  {id:103,title:'iOS: Deploy a TestFlight para 22 clientes',area:'it-launch',phase:'phase0',priority:'critical',status:'pending',start:'2026-03-28',end:'2026-04-02',progress:0,type:'task',deps:[100,101,102],desc:'PRIORIDAD ALTA. Subir build a TestFlight. Invitar a los 22 clientes actuales de Frank como beta testers. Verificar Apple Developer certs y provisioning profiles.',comments:[]},
+  {id:104,title:'iOS: Beta Testing con 22 clientes (2-4 semanas)',area:'it-launch',phase:'phase1',priority:'high',status:'blocked',start:'2026-04-02',end:'2026-04-25',progress:0,type:'task',deps:[103],desc:'Período de pruebas con clientes reales. Recopilar: crashes, bugs, UX feedback, rendimiento. Priorizar fixes críticos.',comments:[]},
+  {id:105,title:'iOS: Preparar App Store Submission',area:'it-launch',phase:'phase1',priority:'critical',status:'blocked',start:'2026-04-20',end:'2026-04-28',progress:0,type:'task',deps:[104],desc:'Screenshots, descripción App Store, keywords ASO, privacy policy URL, app review notes. Categoría: Health & Fitness.',comments:[]},
+  {id:106,title:'⬥ App publicada en App Store',area:'it-launch',phase:'phase1',priority:'critical',status:'blocked',start:'2026-05-01',end:'2026-05-01',progress:0,type:'milestone',deps:[105],desc:'HITO CLAVE: TFG disponible públicamente en App Store. Primer paso hacia escala.',comments:[]},
+  {id:107,title:'iOS: Workouts Module',area:'it-launch',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-15',end:'2026-08-15',progress:0,type:'task',deps:[21,106],desc:'Depende del Training Module web. Reproducción secuencial de ejercicios, timer, log de reps/peso. Placeholder actual: WorkoutsPlaceholderView.',comments:[]},
+  {id:108,title:'iOS: Chat Module',area:'it-launch',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-15',end:'2026-08-01',progress:0,type:'task',deps:[22,106],desc:'Depende de Chat web. Mensajería directa trainer↔cliente via Firestore real-time. Placeholder actual: ChatPlaceholderView.',comments:[]},
+  {id:109,title:'iOS: macOS App (SwiftUI shared)',area:'it-launch',phase:'phase3',priority:'medium',status:'pending',start:'2026-09-01',end:'2026-10-15',progress:0,type:'task',deps:[106],desc:'App de escritorio macOS usando SwiftUI compartido con iOS. Catalyst o native macOS target. Dashboard, gestión de clientes, analytics.',comments:[]},
+  {id:110,title:'⬥ Plataforma Completa (iOS + Web + macOS)',area:'it-launch',phase:'phase3',priority:'critical',status:'blocked',start:'2026-10-15',end:'2026-10-15',progress:0,type:'milestone',deps:[29,107,108,109],desc:'HITO: Ecosistema TFG completo en todas las plataformas.',comments:[]},
+
+  // ─── IA & AUTOMATIZACIÓN (IDs 120-130) ──────────────────────────
+  {id:120,title:'Diseñar arquitectura del Agente AI',area:'ai-infra',phase:'phase1',priority:'high',status:'pending',start:'2026-04-15',end:'2026-05-01',progress:0,type:'task',deps:[],desc:'Definir: qué APIs usar (OpenAI GPT-4o, Claude), qué datos procesar, qué acciones automatizar. Diagrama de flujo completo. Endpoints necesarios.',comments:[]},
+  {id:121,title:'AI: Asistente Conversacional de Fitness',area:'ai-infra',phase:'phase2',priority:'high',status:'blocked',start:'2026-05-15',end:'2026-06-15',progress:0,type:'task',deps:[120,21],desc:'Chatbot que responde preguntas de nutrición, sugiere ejercicios, motiva al usuario. Conectado a datos del usuario (peso, macros, adherencia). Voice integration con sistema dual existente.',comments:[]},
+  {id:122,title:'AI: Sistema de Reportes Semanales Automatizados',area:'ai-infra',phase:'phase2',priority:'medium',status:'blocked',start:'2026-06-01',end:'2026-06-20',progress:0,type:'task',deps:[120,25],desc:'Agente que genera reportes semanales por cliente: % workouts, adherencia nutricional, tendencia de peso. Se envía automáticamente cada lunes.',comments:[]},
+  {id:123,title:'AI: Alertas Inteligentes de Clientes',area:'ai-infra',phase:'phase2',priority:'medium',status:'blocked',start:'2026-06-15',end:'2026-07-01',progress:0,type:'task',deps:[120],desc:'Detectar: cliente que no entrena en 3+ días, pérdida de adherencia, anomalías en peso. Notificar al trainer automáticamente.',comments:[]},
+  {id:124,title:'AI: Nutrition AI Logger',area:'ai-infra',phase:'phase2',priority:'medium',status:'blocked',start:'2026-07-01',end:'2026-07-30',progress:0,type:'task',deps:[120,26],desc:'Foto o texto de comida → estimación automática de macros via AI Vision API. Integrado en Meal Planner de la app.',comments:[]},
+  {id:125,title:'AI: Agente de Coaching Personalizado',area:'ai-infra',phase:'phase3',priority:'high',status:'blocked',start:'2026-08-01',end:'2026-09-15',progress:0,type:'task',deps:[121,122,123],desc:'Agente avanzado que combina todos los datos del usuario para dar coaching personalizado. Analiza tendencias, sugiere cambios, celebra logros.',comments:[]},
+  {id:126,title:'⬥ Plataforma AI Completamente Integrada',area:'ai-infra',phase:'phase3',priority:'critical',status:'blocked',start:'2026-09-15',end:'2026-09-15',progress:0,type:'milestone',deps:[121,122,123,124,125],desc:'HITO: TFG tiene AI coach, reportes automatizados, alertas inteligentes y nutrition AI. Diferenciador clave del mercado.',comments:[]},
+
+  // ─── SERVIDOR & MIGRACIÓN (IDs 130-137) ─────────────────────────
+  {id:130,title:'Setup cuentas AWS propias de TFG',area:'server',phase:'phase1',priority:'high',status:'pending',start:'2026-04-15',end:'2026-04-25',progress:0,type:'task',deps:[4],desc:'Crear cuentas AWS bajo TFG LLC. EC2/ECS para hosting, RDS para base de datos, S3 para assets. IAM roles configurados.',comments:[]},
+  {id:131,title:'Verificar ownership Firebase project',area:'server',phase:'phase1',priority:'critical',status:'pending',start:'2026-04-10',end:'2026-04-15',progress:0,type:'task',deps:[],desc:'Confirmar que Josué tiene control total del proyecto Firebase the-fitness-garage-7a723. Verificar billing, APIs, security rules.',comments:[]},
+  {id:132,title:'Migrar Stripe sync a AWS TFG',area:'server',phase:'phase1',priority:'high',status:'blocked',start:'2026-04-25',end:'2026-05-10',progress:0,type:'task',deps:[130],desc:'Mover webhooks de Stripe, sincronización de suscripciones y facturación al server TFG. ZERO DOWNTIME obligatorio.',comments:[]},
+  {id:133,title:'Migrar DNS y SSL',area:'server',phase:'phase1',priority:'medium',status:'blocked',start:'2026-05-05',end:'2026-05-12',progress:0,type:'task',deps:[130,132],desc:'Apuntar the-fitness-garage.com a infraestructura TFG. Certificados SSL Let\'s Encrypt. Verificar propagación DNS.',comments:[]},
+  {id:134,title:'Migrar Next.js deployment',area:'server',phase:'phase1',priority:'high',status:'blocked',start:'2026-05-10',end:'2026-05-20',progress:0,type:'task',deps:[130,133],desc:'Mover el deployment de Vercel/BinaryClouds a infraestructura TFG. Configurar CI/CD pipeline propio.',comments:[]},
+  {id:135,title:'Testing post-migración completo',area:'server',phase:'phase1',priority:'critical',status:'blocked',start:'2026-05-20',end:'2026-05-27',progress:0,type:'task',deps:[132,133,134],desc:'Probar TODOS los flujos: login, booking, pagos, sync iOS, nutrición. Verificar que nada se rompió. Rollback plan listo.',comments:[]},
+  {id:136,title:'⬥ Infraestructura 100% propiedad de TFG',area:'server',phase:'phase1',priority:'critical',status:'blocked',start:'2026-05-30',end:'2026-05-30',progress:0,type:'milestone',deps:[131,135],desc:'HITO: TFG controla toda su infraestructura. Sin dependencia de terceros para hosting o deploy. Firebase + AWS + dominio = TFG.',comments:[]}
+];
+
+// ═══ UTILITY ═════════════════════════════════════════════════════
+function getArea(id) { return AREAS.find(a => a.id === id) || AREAS[0]; }
+function getPhase(id) { return PHASES.find(p => p.id === id) || PHASES[0]; }
+function getTask(id) { return tasks.find(t => t.id === id); }
+function daysBetween(a, b) { return Math.round((new Date(b) - new Date(a)) / (1000 * 60 * 60 * 24)); }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r.toISOString().slice(0, 10); }
+function today() { return new Date().toISOString().slice(0, 10); }
+function isBlocked(t) { return t.deps.some(d => { const dt = getTask(d); return dt && dt.status !== 'done'; }); }
+function isAdmin() { return currentUser && currentUser.role === 'owner'; }
+
+function getFilteredTasks() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const roleDef = ROLE_DEFAULTS[currentRole];
+  return tasks.filter(t => {
+    // Role-based filtering
+    if (roleDef.areas && !roleDef.areas.includes(t.area)) return false;
+    if (activeArea !== 'all' && t.area !== activeArea) return false;
+    if (search && !t.title.toLowerCase().includes(search) && !(t.desc || '').toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+// ═══ COMMENTS SYSTEM (FIREBASE FIRESTORE) ═══════════════════════
+function getCurrentAuthor() {
+  return currentUser ? currentUser.displayName : ROLE_DEFAULTS[currentRole].name;
+}
+
+function getCurrentUsername() {
+  return currentUser ? currentUser.username : 'unknown';
+}
+
+// Translate text using Google Translate API
+async function translateText(text, targetLang) {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data[0].map(item => item[0]).join('');
+  } catch(e) {
+    console.warn('Translation failed:', e);
+    return null; // fallback: show original
+  }
+}
+
+// Write comment to Firestore
+async function addComment() {
+  const editId = parseInt(document.getElementById('editTaskId').value);
+  if (!editId) return;
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const task = getTask(editId);
+  if (!task) return;
+
+  // Disable button while sending
+  const btn = document.getElementById('addCommentBtn');
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+
+  try {
+    await db.collection('messages').add({
+      text: text,
+      author: getCurrentAuthor(),
+      username: getCurrentUsername(),
+      section: task.area,
+      taskId: editId,
+      lang: lang,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString() // fallback for ordering before server timestamp resolves
+    });
+    input.value = '';
+    // Mark this task's comments as read since we're viewing them
+    saveLastSeen(editId);
+  } catch (err) {
+    console.error('Error sending message:', err);
+    alert('Error sending message. Check console for details.');
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+// ═══ EDIT / DELETE COMMENTS ══════════════════════════════════════
+async function editComment(commentId, taskId) {
+  const task = getTask(taskId);
+  if (!task) return;
+  const comment = task.comments.find(c => c.id === commentId);
+  if (!comment) return;
+
+  const isOwner = currentUser && currentUser.role === 'owner';
+  const isMine = comment.username === getCurrentUsername();
+  if (!isOwner && !isMine) return;
+
+  const newText = prompt(lang === 'es' ? 'Editar comentario:' : 'Edit comment:', comment.text);
+  if (newText === null || newText.trim() === '') return;
+
+  try {
+    await db.collection('messages').doc(commentId).update({
+      text: newText.trim(),
+      editedAt: new Date().toISOString(),
+      editedBy: getCurrentUsername()
+    });
+  } catch(err) {
+    console.error('Error editing comment:', err);
+    alert(lang === 'es' ? 'Error al editar' : 'Error editing comment');
+  }
+}
+
+async function deleteComment(commentId, taskId) {
+  const isOwner = currentUser && currentUser.role === 'owner';
+  if (!isOwner) return;
+
+  const confirmMsg = lang === 'es' ? '¿Eliminar este comentario?' : 'Delete this comment?';
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    await db.collection('messages').doc(commentId).delete();
+  } catch(err) {
+    console.error('Error deleting comment:', err);
+    alert(lang === 'es' ? 'Error al eliminar' : 'Error deleting comment');
+  }
+}
+
+// ═══ FIRESTORE REAL-TIME LISTENER ═══════════════════════════════
+function setupFirestoreListener() {
+  if (firestoreListener) firestoreListener(); // unsubscribe previous
+
+  const messagesRef = db.collection('messages').orderBy('createdAt', 'asc');
+
+  firestoreListener = messagesRef.onSnapshot(snapshot => {
+    firestoreConnected = true;
+    updateFirebaseStatus();
+
+    // Rebuild all task comments from Firestore
+    const allComments = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const taskId = data.taskId;
+      if (!allComments[taskId]) allComments[taskId] = [];
+      allComments[taskId].push({
+        id: doc.id,
+        text: data.text,
+        author: data.author,
+        username: data.username || '',
+        lang: data.lang || 'es',
+        timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : data.createdAt,
+        section: data.section
+      });
+    });
+
+    // Update task comments and detect new messages
+    const prevCommentCounts = {};
+    tasks.forEach(t => { prevCommentCounts[t.id] = (t.comments || []).length; });
+
+    tasks.forEach(t => {
+      t.comments = allComments[t.id] || [];
+    });
+
+    // Check for new messages and show toast notifications
+    tasks.forEach(t => {
+      const prevCount = prevCommentCounts[t.id] || 0;
+      const newCount = (t.comments || []).length;
+      if (newCount > prevCount) {
+        // New message arrived — show toast for messages from others
+        const latestComment = t.comments[t.comments.length - 1];
+        if (latestComment && latestComment.username !== getCurrentUsername()) {
+          showToastNotification(latestComment.author, t.title, latestComment.text, t.id);
+        }
+      }
+    });
+
+    // Update unread counts per section
+    updateSectionUnreadCounts();
+
+    // Re-render if panel is open showing comments
+    const editId = parseInt(document.getElementById('editTaskId').value);
+    if (editId && document.getElementById('panel').classList.contains('show')) {
+      renderComments(editId);
+    }
+
+    // Re-render main view to update badges
+    render();
+  }, err => {
+    console.error('Firestore listener error:', err);
+    firestoreConnected = false;
+    updateFirebaseStatus();
+  });
+}
+
+// ═══ NOTIFICATION TOASTS ═══════════════════════════════════════
+function showToastNotification(author, taskTitle, text, taskId) {
+  const toast = document.createElement('div');
+  toast.className = 'firebase-toast';
+  toast.innerHTML = `
+    <span class="toast-icon">💬</span>
+    <div class="toast-text">
+      <span class="toast-author">${author}</span> on <strong>${taskTitle.slice(0,35)}</strong><br>
+      ${text.slice(0, 80)}${text.length > 80 ? '...' : ''}
+    </div>
+    <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+  `;
+  toast.style.cursor = 'pointer';
+  toast.onclick = (e) => {
+    if (e.target.classList.contains('toast-close')) return;
+    toast.remove();
+    openPanel(taskId);
+  };
+  document.body.appendChild(toast);
+  // Auto-remove after 6 seconds
+  setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
+}
+
+// ═══ UNREAD TRACKING (localStorage per user) ═══════════════════
+function getLastSeenKey() {
+  return `tfg_lastSeen_${getCurrentUsername()}`;
+}
+
+function loadLastSeenComments() {
+  try {
+    const data = localStorage.getItem(getLastSeenKey());
+    if (data) lastSeenComments = JSON.parse(data);
+    else lastSeenComments = {};
+  } catch(e) { lastSeenComments = {}; }
+}
+
+function saveLastSeen(taskId) {
+  lastSeenComments[taskId] = new Date().toISOString();
+  try {
+    localStorage.setItem(getLastSeenKey(), JSON.stringify(lastSeenComments));
+  } catch(e) {}
+  updateSectionUnreadCounts();
+}
+
+function updateSectionUnreadCounts() {
+  sectionUnreadCounts = {};
+  tasks.forEach(t => {
+    if (!t.comments || t.comments.length === 0) return;
+    const lastComment = t.comments[t.comments.length - 1];
+    const taskLastSeen = lastSeenComments[t.id];
+    // Only count unread if there are comments from OTHER users
+    const unread = t.comments.filter(c => {
+      const isNew = !taskLastSeen || new Date(c.timestamp) > new Date(taskLastSeen);
+      const isOther = c.username !== getCurrentUsername();
+      return isNew && isOther;
+    }).length;
+    if (unread > 0) {
+      if (!sectionUnreadCounts[t.area]) sectionUnreadCounts[t.area] = 0;
+      sectionUnreadCounts[t.area] += unread;
+    }
+  });
+}
+
+// ═══ FIREBASE STATUS INDICATOR ═════════════════════════════════
+function updateFirebaseStatus() {
+  const el = document.getElementById('firebaseStatus');
+  if (!el) return;
+  el.className = 'firebase-status ' + (firestoreConnected ? 'connected' : 'disconnected');
+  el.title = firestoreConnected ? 'Firebase Connected — Real-time sync active' : 'Firebase Disconnected — Check Firestore rules';
+  // Show warning banner if disconnected after 5 seconds
+  if (!firestoreConnected) {
+    setTimeout(() => {
+      if (!firestoreConnected) {
+        const banner = document.getElementById('firebaseBanner');
+        if (banner) banner.style.display = 'flex';
+      }
+    }, 5000);
+  } else {
+    const banner = document.getElementById('firebaseBanner');
+    if (banner) banner.style.display = 'none';
+  }
+}
+
+function renderComments(taskId) {
+  const task = getTask(taskId);
+  if (!task) return;
+  if (!task.comments) task.comments = [];
+
+  const list = document.getElementById('commentsList');
+  if (!list) return;
+
+  const isOwner = currentUser && currentUser.role === 'owner';
+  const myUsername = getCurrentUsername();
+
+  let html = '';
+  task.comments.forEach(comment => {
+    const date = comment.timestamp ? new Date(comment.timestamp) : new Date();
+    const time = date.toLocaleTimeString(lang === 'es' ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = date.toLocaleDateString(lang === 'es' ? 'es' : 'en', { month: 'short', day: 'numeric' });
+
+    // Simple translation indicator if comment language differs from UI language
+    let translationNote = '';
+    if (comment.lang !== lang) {
+      const originalLang = comment.lang === 'es' ? T('spanish') : T('english');
+      translationNote = `<div class="comment-translation">[${T('originalIn')} ${originalLang}]</div>`;
+    }
+
+    // Highlight if from current user
+    const isMine = comment.username === myUsername;
+    const bubbleStyle = isMine ? 'border-left-color:var(--blue)' : '';
+
+    // Action buttons: owner can edit/delete all, others can only edit their own
+    let actionsHtml = '';
+    const canEdit = isOwner || isMine;
+    const canDelete = isOwner;
+    if (canEdit || canDelete) {
+      actionsHtml = '<div class="comment-actions">';
+      if (canEdit) actionsHtml += `<button onclick="editComment('${comment.id}',${taskId})">${lang==='es'?'Editar':'Edit'}</button>`;
+      if (canDelete) actionsHtml += `<button class="delete-btn" onclick="deleteComment('${comment.id}',${taskId})">${lang==='es'?'Borrar':'Delete'}</button>`;
+      actionsHtml += '</div>';
+    }
+
+    html += `<div class="comment-bubble" style="${bubbleStyle}" id="comment-${comment.id}">
+      <div class="comment-meta">
+        <span class="comment-author">${comment.author}</span>
+        <span class="comment-lang">${comment.lang ? comment.lang.toUpperCase() : ''}</span>
+      </div>
+      <div class="comment-text">${(comment.text || '').replace(/\n/g, '<br>')}</div>
+      <div style="font-size:9px;color:var(--t3)">${dateStr} ${time}</div>
+      ${translationNote}
+      ${actionsHtml}
+    </div>`;
+  });
+
+  list.innerHTML = html || '<div style="color:var(--t3);font-size:11px">No comments yet</div>';
+  list.scrollTop = list.scrollHeight;
+
+  // Auto-translate comments that are in a different language than current UI
+  const viewerLang = lang; // current UI language
+  task.comments.forEach(async (comment) => {
+    if (comment.lang && comment.lang !== viewerLang && comment.text) {
+      const translated = await translateText(comment.text, viewerLang);
+      if (translated && translated !== comment.text) {
+        const bubble = document.getElementById('comment-' + comment.id);
+        if (bubble) {
+          const textEl = bubble.querySelector('.comment-text');
+          if (textEl) {
+            const original = comment.text.replace(/\n/g, '<br>');
+            const toggleLabel = viewerLang === 'es' ? 'Ver original' : 'See original';
+            const translatedLabel = viewerLang === 'es' ? 'Ver traducción' : 'See translation';
+            textEl.innerHTML = translated.replace(/\n/g, '<br>');
+            // Add toggle
+            let toggleDiv = bubble.querySelector('.translate-toggle');
+            if (!toggleDiv) {
+              toggleDiv = document.createElement('div');
+              toggleDiv.className = 'translate-toggle';
+              toggleDiv.style.cssText = 'font-size:9px;color:var(--blue);cursor:pointer;margin-top:4px;font-weight:600';
+              textEl.parentNode.insertBefore(toggleDiv, textEl.nextSibling);
+            }
+            toggleDiv.textContent = '🌐 ' + toggleLabel;
+            let showOriginal = false;
+            toggleDiv.onclick = () => {
+              showOriginal = !showOriginal;
+              textEl.innerHTML = showOriginal ? original : translated.replace(/\n/g, '<br>');
+              toggleDiv.textContent = '🌐 ' + (showOriginal ? translatedLabel : toggleLabel);
+            };
+          }
+        }
+      }
+    }
+  });
+}
+
+// ═══ IT SPLIT VIEWS ═════════════════════════════════════════════
+
+function isITAreaActive() {
+  return activeArea === 'it-web' || activeArea === 'it-app' || activeArea === 'it-appweb' || activeArea === 'it-launch' || activeArea === 'ai-infra' || activeArea === 'server';
+}
+
+function renderITMessagesHTML(sectionFilter) {
+  // Gather all comments from IT tasks
+  const itTasks = tasks.filter(t => t.area === 'it-web' || t.area === 'it-app');
+  let allMsgs = [];
+  itTasks.forEach(t => {
+    if (t.comments && t.comments.length) {
+      t.comments.forEach(c => allMsgs.push({...c, taskTitle: t.title, taskId: t.id}));
+    }
+  });
+  allMsgs.sort((a,b) => new Date(a.timestamp||0) - new Date(b.timestamp||0));
+  const last20 = allMsgs.slice(-20);
+
+  let msgsHtml = '';
+  if (last20.length === 0) {
+    msgsHtml = '<div style="color:var(--t3);font-size:11px;padding:12px">No messages yet</div>';
+  } else {
+    last20.forEach(m => {
+      const isMine = m.username === getCurrentUsername();
+      const d = m.timestamp ? new Date(m.timestamp) : new Date();
+      const time = d.toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'});
+      const date = d.toLocaleDateString('en', {month:'short',day:'numeric'});
+      msgsHtml += `<div class="it-msg-bubble${isMine?' mine':''}">
+        <div class="it-msg-meta"><span class="it-msg-author">${m.author} <span style="color:var(--t3);font-size:9px">on #${m.taskId}</span></span><span class="it-msg-time">${date} ${time}</span></div>
+        <div class="it-msg-text">${(m.text||'').replace(/\n/g,'<br>')}</div>
+      </div>`;
+    });
+  }
+
+  return `<div class="it-messages-section">
+    <h3>💬 ${currentUser && currentUser.username==='binaryclouds' ? 'IT Communication' : 'Comunicación IT'}</h3>
+    <div class="it-msg-list" id="itMsgList">${msgsHtml}</div>
+    <div class="it-msg-input-row">
+      <textarea id="itMsgInput" placeholder="${currentUser && currentUser.username==='binaryclouds' ? 'Write a message...' : 'Escribe un mensaje...'}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendITMessage()}"></textarea>
+      <button class="btn btn-red" onclick="sendITMessage()">${currentUser && currentUser.username==='binaryclouds' ? 'Send' : 'Enviar'}</button>
+    </div>
+  </div>`;
+}
+
+async function sendITMessage() {
+  const input = document.getElementById('itMsgInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  // Find the first IT task to attach the message to
+  const itTask = tasks.find(t => t.area === 'it-web' || t.area === 'it-app') || tasks[0];
+  if (!itTask) return;
+  input.disabled = true;
+  try {
+    await db.collection('messages').add({
+      text: text,
+      author: getCurrentAuthor(),
+      username: getCurrentUsername(),
+      section: 'it-web',
+      taskId: itTask.id,
+      lang: lang,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString()
+    });
+    input.value = '';
+  } catch(e) { console.error('Send error:', e); }
+  finally { input.disabled = false; }
+}
+
+// ──── BINARYCLOUDS VIEW (English, Phase 1 + Phase 2 only) ────
+function renderITViewBinaryClouds() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:var(--cyan)">IT / iOS App — Scope & Module Map</h2>
+    <div class="it-subtitle">THE FITNESS GARAGE — Development Reference for BinaryClouds Team</div>
+
+    <!-- SECTION A: Phase 1 -->
+    <div class="it-section">
+      <div class="it-section-header">✅ Phase 1: Already Built <span class="badge badge-complete">COMPLETE</span></div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Authentication & User Management</span><span class="badge badge-complete">COMPLETE</span></div>
+        <ul>
+          <li>User registration & login</li>
+          <li>Role-based access: Admin / Trainer / Client</li>
+          <li>User profile (photo, weight, goals, macros)</li>
+          <li>Membership plan assignment</li>
+          <li>Status: Active / Inactive</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Membership System</span><span class="badge badge-complete">COMPLETE</span></div>
+        <ul>
+          <li>One-on-One plan (1hr in-person)</li>
+          <li>Online plan (30-min video review — Review Week only)</li>
+          <li>Trainer calendar (1hr blocks)</li>
+          <li>30-min slot splitting for Online clients</li>
+          <li>Booking confirmation & notifications</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Nutrition Tracker</span><span class="badge badge-complete">COMPLETE</span></div>
+        <ul>
+          <li>Daily macro targets (calories, protein, carbs, fat)</li>
+          <li>Recipe library & meal logging</li>
+          <li>Daily macro progress tracking</li>
+          <li>Weight logging (current vs initial)</li>
+          <li>Health summary display</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Firebase Infrastructure</span><span class="badge badge-complete">COMPLETE</span></div>
+        <ul>
+          <li>Cloud Firestore — real-time data</li>
+          <li>Firebase Authentication</li>
+          <li>iOS App registered (TFG iOS App)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION B: Phase 2 -->
+    <div class="it-section">
+      <div class="it-section-header">🔲 Phase 2: Pending Development <span class="badge badge-pending">PENDING</span></div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Training System</span><span class="badge badge-pending">PENDING</span></div>
+        <ul>
+          <li><strong>Workout Video Catalog (Exercise Library)</strong></li>
+          <li>Upload & store exercise videos (15s max / GIF)</li>
+          <li>Categories: Chest, Back, Legs, Shoulders, Arms, Core</li>
+          <li>Search & filter by name, category, muscle group</li>
+          <li><strong>TFG Training Lab — Routine Builder (Admin)</strong></li>
+          <li>Sets, reps, rest time configuration</li>
+          <li>Superset & Triset support</li>
+          <li>Draft / Publish routine states</li>
+          <li>Weekly Routine Assignment per user</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">My Workout — User View</span><span class="badge badge-pending">PENDING</span></div>
+        <ul>
+          <li>User views daily assigned workout</li>
+          <li>Sequential exercise playback with video</li>
+          <li>Rest timer between sets</li>
+          <li>Finish Workout button (marks complete)</li>
+          <li>Workout history & adherence %</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Online Membership — Video Calls</span><span class="badge badge-pending">PENDING</span></div>
+        <ul>
+          <li>Auto-generate video call link on booking</li>
+          <li>Link visible to client and trainer</li>
+          <li>Email confirmation with link</li>
+          <li>Trainer reschedule & access from calendar</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Nutrition Phase 2</span><span class="badge badge-pending">PENDING</span></div>
+        <ul>
+          <li>Nutritional history database structure</li>
+          <li><span class="badge badge-optional">OPTIONAL</span> AI Food Logging via API (quote separately)</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">TFG Weekly Report</span><span class="badge badge-pending">PENDING</span></div>
+        <ul>
+          <li>Workouts completed vs assigned (weekly %)</li>
+          <li>Nutrition logging consistency %</li>
+          <li>Weekly macro adherence %</li>
+          <li>Weekly weight change (+/-)</li>
+          <li>Replaces current Health Summary block</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION C: What We Need -->
+    <div class="it-section">
+      <div class="it-section-header">📋 What We Need From You</div>
+      <div class="it-need-box">
+        <strong>For each Phase 2 module, please provide:</strong><br><br>
+        • Development cost estimate<br>
+        • Development timeline<br>
+        • Expected delivery date<br>
+        • Technical dependencies or blockers<br>
+        • Separate quote for optional AI Food Logging
+      </div>
+    </div>
+
+    <!-- SECTION D: Messages -->
+    ${renderITMessagesHTML('it')}
+  </div>`;
+
+  document.getElementById('mainContent').innerHTML = html;
+  const msgList = document.getElementById('itMsgList');
+  if (msgList) msgList.scrollTop = msgList.scrollHeight;
+}
+
+// ──── JOSUÉ VIEW (Spanish, Full Strategy + Phase 3) ────
+function renderITViewJosue() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:var(--cyan)">IT / App iOS — Visión Completa y Estrategia Maestra</h2>
+    <div class="it-confidential">⚠️ CONFIDENCIAL — Solo para el Owner</div>
+
+    <!-- PANEL A: Fase 1 -->
+    <div class="it-section">
+      <div class="it-section-header">✅ Fase 1: Lo que ya está construido <span class="badge badge-complete">COMPLETO</span></div>
+      <div class="it-section-note">Estos módulos están en producción y funcionando.</div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Autenticación y Gestión de Usuarios</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul>
+          <li>Registro e inicio de sesión</li>
+          <li>Acceso por roles: Admin / Trainer / Cliente</li>
+          <li>Perfil de usuario (foto, peso, metas, macros)</li>
+          <li>Asignación de plan de membresía</li>
+          <li>Estado: Activo / Inactivo</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Sistema de Membresías</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul>
+          <li>Plan One-on-One (1hr presencial)</li>
+          <li>Plan Online (30-min video review — solo Review Week)</li>
+          <li>Calendario del trainer (bloques de 1hr)</li>
+          <li>División de slots de 30 min para clientes Online</li>
+          <li>Confirmación de booking y notificaciones</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Tracker de Nutrición</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul>
+          <li>Metas diarias de macros (calorías, proteína, carbs, grasa)</li>
+          <li>Biblioteca de recetas y registro de comidas</li>
+          <li>Seguimiento de progreso de macros diario</li>
+          <li>Registro de peso (actual vs inicial)</li>
+          <li>Resumen de salud</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Infraestructura Firebase</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul>
+          <li>Cloud Firestore — datos en tiempo real</li>
+          <li>Firebase Authentication</li>
+          <li>iOS App registrada (TFG iOS App)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PANEL B: Fase 2 -->
+    <div class="it-section">
+      <div class="it-section-header">🔲 Fase 2: Lo que BinaryClouds va a construir <span class="badge badge-pending">PENDIENTE</span></div>
+      <div class="it-section-note">BinaryClouds está cotizando estos módulos. Una vez entregados, lanzamos Versión 1.</div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Sistema de Entrenamiento</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul>
+          <li><strong>Catálogo de Videos de Ejercicios</strong></li>
+          <li>Subir y almacenar videos (15s máx / GIF)</li>
+          <li>Categorías: Pecho, Espalda, Piernas, Hombros, Brazos, Core</li>
+          <li>Búsqueda y filtro por nombre, categoría, grupo muscular</li>
+          <li><strong>TFG Training Lab — Constructor de Rutinas (Admin)</strong></li>
+          <li>Configuración de series, reps, descanso</li>
+          <li>Soporte de Superseries y Triseries</li>
+          <li>Estados de rutina: Borrador / Publicada</li>
+          <li>Asignación semanal de rutina por usuario</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Mi Workout — Vista del Usuario</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul>
+          <li>El usuario ve su workout asignado del día</li>
+          <li>Reproducción secuencial de ejercicios con video</li>
+          <li>Timer de descanso entre series</li>
+          <li>Botón "Terminar Workout" (marca completo)</li>
+          <li>Historial de workouts y % de adherencia</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Membresía Online — Video Llamadas</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul>
+          <li>Auto-generar link de videollamada al reservar</li>
+          <li>Link visible para cliente y trainer</li>
+          <li>Confirmación por email con link</li>
+          <li>Reprogramación y acceso desde calendario del trainer</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">Nutrición Fase 2</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul>
+          <li>Estructura de base de datos para historial nutricional</li>
+          <li><span class="badge badge-optional">OPCIONAL</span> AI Food Logging vía API (cotizar por separado)</li>
+        </ul>
+      </div>
+
+      <div class="it-module">
+        <div class="it-module-header"><span class="it-module-title">TFG Reporte Semanal</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul>
+          <li>Workouts completados vs asignados (% semanal)</li>
+          <li>Consistencia de registro de nutrición %</li>
+          <li>Adherencia semanal de macros %</li>
+          <li>Cambio de peso semanal (+/-)</li>
+          <li>Reemplaza el bloque actual de Health Summary</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PANEL C: Fase 3 — Visión Maestra -->
+    <div class="it-section">
+      <div class="it-section-header" style="color:var(--purple)">🚀 Fase 3: Visión Maestra de Josué <span class="badge badge-phase3">FASE 3</span></div>
+      <div class="it-confidential">⚠️ Esta sección NO se comparte con BinaryClouds</div>
+
+      <div class="phase3-card">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">🎤</span> Control por Voz — El Diferenciador #1</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul>
+          <li>Experiencia de entrenamiento sin tocar el teléfono</li>
+          <li>Comandos: "Siguiente ejercicio", "Iniciar timer", "Marcar completo"</li>
+          <li>Funciona con pantalla bloqueada durante el entrenamiento</li>
+          <li>Registro de nutrición por voz: "Agrega 3 huevos y 2 tortillas"</li>
+          <li>Integración: iOS SiriKit o Speech Recognition API</li>
+          <li>Estado: FASE 3 — Por desarrollar</li>
+        </ul>
+      </div>
+
+      <div class="phase3-card">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">🌟</span> Catálogo de Influencers — Membresía $10/mes</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul>
+          <li>Socios influencers hospedan sus programas dentro de TFG</li>
+          <li>Vista de catálogo: navegar programas por categoría y objetivo</li>
+          <li>Activar membresía → acceso a biblioteca completa del influencer</li>
+          <li>TFG rastrea si el usuario sigue el programa</li>
+          <li>Dashboard del influencer: ver cuántos usuarios los siguen</li>
+          <li>Estado: FASE 3 — Por desarrollar</li>
+        </ul>
+      </div>
+
+      <div class="phase3-card">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">💎</span> VIP Intelligence — El Upsell Premium</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul>
+          <li>Cada miembro de $10 genera datos completos: entrenamientos, macros, peso</li>
+          <li>El trainer ve quién sigue el programa y obtiene resultados</li>
+          <li>Filtro inteligente: identificar usuarios con alta adherencia</li>
+          <li>Oferta VIP: "Seguiste el 90% del programa — imagínate con coaching personalizado"</li>
+          <li>El precio de los servicios VIP lo decides tú — los datos lo justifican</li>
+          <li>Estado: FASE 3 — Por desarrollar</li>
+        </ul>
+      </div>
+
+      <div class="phase3-card">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">📊</span> Dashboard de Inteligencia (Vista Owner)</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul>
+          <li>Usuarios activos por tipo de membresía</li>
+          <li>MRR (Monthly Recurring Revenue)</li>
+          <li>Tasa de retención y alertas de churn</li>
+          <li>Programas de influencers con mejor engagement</li>
+          <li>Tasa de conversión: miembros $10 → VIP</li>
+          <li>Proyecciones de ingresos</li>
+          <li>Estado: FASE 3 — Por desarrollar</li>
+        </ul>
+      </div>
+
+      <!-- Timeline -->
+      <div style="margin-top:28px">
+        <div class="it-section-header" style="color:var(--purple)">🚀 Estrategia de Lanzamiento — 2 Fases</div>
+        <div class="it-timeline">
+          <div class="it-timeline-item">
+            <div class="it-timeline-label now">▶ AHORA</div>
+            <ul>
+              <li>Construir con BinaryClouds → Lanzar Versión 1</li>
+              <li>Adquirir primeros clientes: One-on-One + Online</li>
+              <li>Recolectar datos reales y testimonios</li>
+            </ul>
+          </div>
+          <div class="it-timeline-item future">
+            <div class="it-timeline-label future">▶ DESPUÉS</div>
+            <ul>
+              <li>Onboard primer influencer</li>
+              <li>Lanzar membresía $10/mes</li>
+              <li>Activar control por voz</li>
+              <li>Usar datos de adherencia para cerrar clientes VIP premium</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code ownership strategy -->
+      <div class="phase3-card" style="border-color:rgba(230,36,41,0.3);background:linear-gradient(135deg,rgba(230,36,41,0.06),rgba(230,36,41,0.02))">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">🔐</span> Estrategia de Propiedad del Código</span></div>
+        <ul>
+          <li>Todo el código debe ser 100% propiedad de The Fitness Garage</li>
+          <li>Contratos con BinaryClouds: cláusula de transferencia total de IP</li>
+          <li>Código fuente entregado al repo privado de GitHub del owner</li>
+          <li>Sin vendor lock-in — cualquier developer puede mantener el código</li>
+          <li>Credenciales de Firebase controladas solo por Josué</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PANEL D: Messages -->
+    ${renderITMessagesHTML('it')}
+  </div>`;
+
+  document.getElementById('mainContent').innerHTML = html;
+  const msgList = document.getElementById('itMsgList');
+  if (msgList) msgList.scrollTop = msgList.scrollHeight;
+}
+
+// ──── APP-WEB CONNECTION VIEW (BinaryClouds - limited) ────
+function renderAppWebDevView() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:#00CED1">IT/APP — APP-WEB Connection Modules</h2>
+    <div class="it-subtitle">THE FITNESS GARAGE — Connection scope for development team</div>
+    <div class="it-confidential" style="border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,0.08)">🔒 LIMITED VIEW — Only assigned modules visible</div>
+
+    <div class="it-section">
+      <div class="it-section-header">🔗 Modules Requiring APP ↔ WEB Synchronization</div>
+      <div class="it-section-note">These modules require real-time data sync between the iOS app and the web platform via Firestore and REST APIs.</div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Training Module Sync</span><span class="badge badge-pending">PENDING</span></div>
+        <ul><li>Exercise library data shared between web admin and iOS app</li><li>Routine assignments pushed from web to iOS via Firestore</li><li>Workout completion logged from iOS, visible on web dashboard</li><li>Video/GIF assets served from shared CDN</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Chat System Sync</span><span class="badge badge-pending">PENDING</span></div>
+        <ul><li>Firestore real-time messaging collection</li><li>Messages sent from web or iOS appear instantly on both</li><li>Read receipts and typing indicators</li><li>Photo/file attachments via Firebase Storage</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Nutrition Tracker Sync</span><span class="badge badge-pending">PENDING</span></div>
+        <ul><li>Daily meal logs synced via /api/admin/nutritionDailyMeals</li><li>Recipe catalog shared between platforms</li><li>Macro calculations consistent across web and iOS</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Calendar & Booking Sync</span><span class="badge badge-complete">LIVE</span></div>
+        <ul><li>Real-time Firestore sync operational (v2.16)</li><li>iOS reads ALL slot data, displays only available</li><li>Bookings from iOS appear as "Extra Session" on web</li><li>Auto-refresh every 10 seconds</li></ul></div>
+    </div>
+
+    ${renderITMessagesHTML('it')}
+  </div>`;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ──── APP-WEB CONNECTION VIEW (Owner - full) ────
+function renderAppWebOwnerView() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:#00CED1">IT/APP Conexión APP-WEB — Vista Completa</h2>
+    <div class="it-confidential">⚠️ CONFIDENCIAL — Solo Owner. BinaryClouds ve versión limitada.</div>
+
+    <div class="it-section">
+      <div class="it-section-header">✅ Sincronización Activa</div>
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Booking System (Firestore Real-Time)</span><span class="badge badge-complete">LIVE v2.16</span></div>
+        <ul><li>iOS → Firestore → Web Dashboard: booking aparece como "Extra Session" naranja</li><li>Web → Firestore → iOS: slots disponibles se actualizan cada 10s</li><li>Dynamic panel scanner: si trainer extiende horario, app detecta automáticamente</li><li>Timezone-aware: slots pasados gris, &lt;12h verde claro + alerta contacto</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Weight Progress (REST API)</span><span class="badge badge-complete">LIVE</span></div>
+        <ul><li>iOS ↔ /api/admin/weight-logs</li><li>Gráfica interactiva con filtros: 1M/3M/6M/12M/2Y/ALL</li><li>Colores inteligentes: verde = en meta, rojo = fuera de meta</li></ul></div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header">🔲 Pendiente de Sincronización</div>
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Training Module Sync</span><span class="badge badge-pending">DEPENDE DE FASE 2 WEB</span></div>
+        <ul><li>BinaryClouds debe completar Training Module web primero</li><li>Ejercicios, rutinas, asignación semanal → Firestore → iOS</li><li>Workout completion desde iOS → visible en web admin</li><li>Video/GIF assets desde Firebase Storage / CDN compartido</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Chat System</span><span class="badge badge-pending">DEPENDE DE FASE 2 WEB</span></div>
+        <ul><li>Firestore collection para mensajería real-time</li><li>Read receipts, typing indicators, file attachments</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Nutrition Tracker Sync</span><span class="badge badge-pending">PRÓXIMO</span></div>
+        <ul><li>/api/admin/nutritionDailyMeals → MealPlannerView</li><li>Recetas, macros, registro diario sincronizado</li></ul></div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:var(--red)">🔐 Seguridad de Sincronización</div>
+      <div class="phase3-card" style="border-color:rgba(230,36,41,0.3);background:linear-gradient(135deg,rgba(230,36,41,0.06),rgba(230,36,41,0.02))">
+        <ul><li>Firebase Security Rules: solo usuarios autenticados acceden a sus propios datos</li><li>API endpoints protegidos con Next-Auth session + Firebase token</li><li>Stripe webhooks verificados con signature validation</li><li>Rate limiting en APIs para prevenir abuso</li><li>Firestore rules: trainers solo ven sus propios clientes</li></ul>
+      </div>
+    </div>
+
+    ${renderITMessagesHTML('it')}
+  </div>`;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ──── APP DEVELOPMENT & LAUNCH VIEW (Owner only) ────
+function renderAppLaunchView() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:#FF6B9D">IT/APP Desarrollo y Lanzamiento — Roadmap Completo</h2>
+    <div class="it-confidential">⚠️ CONFIDENCIAL — Solo Owner. NO compartir con desarrolladores externos.</div>
+
+    <div class="it-section">
+      <div class="it-section-header">✅ Módulos Completados (v2.17)</div>
+      <div class="it-section-note">Estos módulos están listos y funcionando en la app iOS.</div>
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Login Cosmic UI</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul><li>Shockwave rings pulsando desde el logo</li><li>Sistema de cometas orbitales (TimelineView + Canvas)</li><li>Campo de meteoritos y estrellas fugaces</li><li>"YOUR TIME IS NOW" con glow pulsante y diamante decorativo</li><li>Formulario glassmorphic con botón LOGIN que respira</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Voice System (TFG ACCESS)</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul><li>Dual-engine: Apple Speech (gratis, on-device) + OpenAI (paid)</li><li>Comandos locales: peso, reps, calorías, navegación</li><li>Preguntas abiertas: GPT reasoning</li><li>TFG ACCESS mode con animaciones Canvas a 60fps</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Real-Time Calendar Sync</span><span class="badge badge-complete">COMPLETO v2.16</span></div>
+        <ul><li>Panel scanner → Firestore → 10s auto-refresh</li><li>Book Session + My Bookings funcionales</li><li>Extra Sessions escriben a Firestore</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Otros Módulos Live</span><span class="badge badge-complete">COMPLETO</span></div>
+        <ul><li>Garage (Home) con hero, quotes, Today card, Weight Progress</li><li>Progress Tracker (Before/After photos + measurements)</li><li>Recipes + Meal Planner</li><li>My Fitness Profile</li><li>Subscription Plans display</li></ul></div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#FF6B9D">🚀 App Store Launch Plan</div>
+      <div class="it-timeline">
+        <div class="it-timeline-item"><div class="it-timeline-label now">1. TESTFLIGHT</div>
+          <ul><li>Deploy build a TestFlight</li><li>Invitar a 22 clientes actuales como beta testers</li><li>Verificar Apple Developer certs y provisioning profiles</li><li>Objetivo: Semana del 28 de Marzo</li></ul></div>
+
+        <div class="it-timeline-item"><div class="it-timeline-label now">2. BETA TESTING (2-4 semanas)</div>
+          <ul><li>Feedback de 22 usuarios reales</li><li>Monitorear crashes via Xcode Organizer</li><li>Corregir bugs críticos</li><li>Validar UX con usuarios no técnicos</li></ul></div>
+
+        <div class="it-timeline-item future"><div class="it-timeline-label future">3. APP STORE SUBMISSION</div>
+          <ul><li>Screenshots profesionales (6.5" y 5.5")</li><li>Descripción optimizada para ASO</li><li>Privacy Policy URL configurado</li><li>App Review Notes detallado</li><li>Categoría: Health & Fitness</li></ul></div>
+
+        <div class="it-timeline-item future"><div class="it-timeline-label future">4. PUBLICACIÓN</div>
+          <ul><li>App disponible públicamente</li><li>Marketing campaign simultánea</li><li>Monitorear ratings y reviews</li><li>Responder feedback de usuarios</li></ul></div>
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header">🔲 Módulos Pendientes</div>
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Workouts Module</span><span class="badge badge-pending">DEPENDE DE FASE 2 WEB</span></div>
+        <ul><li>Reproducción secuencial de ejercicios con video</li><li>Timer de descanso entre series</li><li>Log de reps/peso</li><li>Historial y adherencia</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Chat Module</span><span class="badge badge-pending">DEPENDE DE FASE 2 WEB</span></div>
+        <ul><li>Mensajería directa trainer↔cliente</li><li>Firestore real-time</li></ul></div>
+
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">macOS App</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul><li>SwiftUI shared codebase con iOS</li><li>Dashboard, gestión de clientes, analytics</li><li>Catalyst o native macOS target</li></ul></div>
+    </div>
+
+    ${renderITMessagesHTML('it')}
+  </div>`;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ──── AI & AUTOMATION INFRASTRUCTURE VIEW ────
+function renderAIInfraView() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:#9B59B6">IA & Automatización — Arquitectura del Agente TFG</h2>
+    <div class="it-confidential">⚠️ CONFIDENCIAL — Solo Owner. Esta es la ventaja competitiva clave.</div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#9B59B6">🤖 Arquitectura del Sistema AI</div>
+      <div class="it-section-note">TFG integra inteligencia artificial en 3 capas: Voz (ya implementada), Asistente Conversacional (próximo), y Agentes Automatizados (futuro).</div>
+
+      <div style="background:var(--s2);border:1px solid rgba(155,89,182,0.3);border-radius:14px;padding:20px;margin-bottom:20px;font-family:monospace;font-size:11px;line-height:1.8;color:var(--t2)">
+        <div style="color:#9B59B6;font-weight:900;font-size:13px;margin-bottom:12px;font-family:inherit">FLUJO DE DATOS AI</div>
+        Usuario habla → Apple Speech (gratis, on-device)<br>
+        &nbsp;&nbsp;→ VoiceRouter.classify(transcript)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;├─ .local → LocalCommandParser (gratis, instantáneo)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├─ weightEntry: "Registra 180 libras"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├─ logReps: "12 reps", "3 series de 10"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├─ navigate: "ir a rutinas"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; └─ action: "start workout"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;└─ .openAI → GPT reasoning (paid)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ "¿cómo voy este mes?" → Análisis datos<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ "suggest a meal" → Nutrición AI<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ Coaching personalizado → Agente AI
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#9B59B6">✅ Capa 1: Voice System (IMPLEMENTADO)</div>
+      <div class="it-module"><div class="it-module-header"><span class="it-module-title">Dual-Engine Voice System</span><span class="badge badge-complete">LIVE</span></div>
+        <ul><li>Apple SFSpeechRecognizer: gratis, on-device, instantáneo</li><li>OpenAI GPT: paid, para preguntas abiertas y razonamiento</li><li>VoiceRouter clasifica automáticamente → local o cloud</li><li>Soporte bilingüe: español e inglés</li><li>TFG ACCESS mode con animaciones Canvas</li></ul></div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#9B59B6">🔲 Capa 2: Asistente Conversacional (PRÓXIMO)</div>
+      <div class="phase3-card" style="border-color:rgba(155,89,182,0.4)">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">💬</span> AI Fitness Coach</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul><li>Chatbot conversacional en la app</li><li>Conectado a datos reales del usuario: peso, macros, workouts, adherencia</li><li>Responde: "¿cómo voy?", "¿qué debo comer?", "¿cuánto he bajado?"</li><li>Motivación personalizada basada en progreso real</li><li>APIs: OpenAI GPT-4o o Claude para razonamiento</li></ul>
+      </div>
+
+      <div class="phase3-card" style="border-color:rgba(155,89,182,0.4)">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">📸</span> Nutrition AI Logger</span><span class="badge badge-pending">PENDIENTE</span></div>
+        <ul><li>Foto de comida → AI Vision API → estimación de macros</li><li>Texto: "comí 3 huevos y 2 tortillas" → cálculo automático</li><li>APIs: OpenAI Vision, Google Gemini, o Nutritionix</li><li>Integrado en Meal Planner de la app</li></ul>
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#9B59B6">🚀 Capa 3: Agentes Automatizados (FASE 3)</div>
+      <div class="phase3-card" style="border-color:rgba(155,89,182,0.4)">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">📊</span> Agente de Reportes Semanales</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul><li>Se ejecuta automáticamente cada lunes</li><li>Genera reporte por cliente: % workouts, adherencia nutricional, tendencia peso</li><li>Se envía al trainer y al cliente</li><li>Identifica clientes que necesitan atención</li></ul>
+      </div>
+
+      <div class="phase3-card" style="border-color:rgba(155,89,182,0.4)">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">🔔</span> Agente de Alertas Inteligentes</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul><li>Cliente no entrena en 3+ días → alerta al trainer</li><li>Pérdida de adherencia nutricional → notificación</li><li>Anomalía en peso → flag para revisión</li><li>Cliente con alta adherencia → oportunidad VIP upsell</li></ul>
+      </div>
+
+      <div class="phase3-card" style="border-color:rgba(155,89,182,0.4)">
+        <div class="phase3-card-header"><span class="phase3-card-title"><span class="icon">🧠</span> Agente de Coaching Personalizado</span><span class="badge badge-phase3">FASE 3</span></div>
+        <ul><li>Combina TODOS los datos: workouts + nutrición + peso + adherencia</li><li>Genera recomendaciones personalizadas</li><li>Ajusta automáticamente macros según progreso</li><li>Celebra logros y motiva en momentos difíciles</li></ul>
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:var(--red)">🔐 Seguridad AI</div>
+      <div class="phase3-card" style="border-color:rgba(230,36,41,0.3);background:linear-gradient(135deg,rgba(230,36,41,0.06),rgba(230,36,41,0.02))">
+        <ul><li>API keys (OpenAI, Claude) manejadas SOLO por Josué via Secrets.plist</li><li>Datos de clientes NUNCA se envían a APIs externas sin consentimiento</li><li>AI Assistant solo se activa después de Training Module completado</li><li>Agentes automatizados requieren aprobación del owner antes de comunicar a clientes</li><li>Logs de todas las interacciones AI para auditoría</li></ul>
+      </div>
+    </div>
+
+    ${renderITMessagesHTML('it')}
+  </div>`;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ──── SERVER & MIGRATION VIEW ────
+function renderServerMigrationView() {
+  const html = `<div class="it-view">
+    <h2 class="it-title" style="color:#1ABC9C">Servidor & Migración — Plan de Infraestructura</h2>
+    <div class="it-confidential">⚠️ CONFIDENCIAL — Solo Owner. Información sensible de infraestructura.</div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#1ABC9C">📍 Infraestructura Actual</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="it-module"><div class="it-module-header"><span class="it-module-title">Web Platform</span></div>
+          <ul><li>Hosting: BinaryClouds managed (Vercel)</li><li>Base: Next.js + Next-Auth</li><li>Pagos: Stripe (pk_live keys)</li><li>Dominio: the-fitness-garage.com</li></ul></div>
+        <div class="it-module"><div class="it-module-header"><span class="it-module-title">iOS App Backend</span></div>
+          <ul><li>Firebase: the-fitness-garage-7a723</li><li>Auth: Firebase Authentication</li><li>DB: Cloud Firestore (real-time)</li><li>Storage: Firebase Storage</li></ul></div>
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:#1ABC9C">🎯 Infraestructura Target (TFG-Owned)</div>
+      <div class="it-timeline">
+        <div class="it-timeline-item"><div class="it-timeline-label now">PASO 1: Verificar Firebase Ownership</div>
+          <ul><li>Confirmar Josué como owner del proyecto Firebase</li><li>Verificar billing, APIs, security rules</li><li>Asegurar que BinaryClouds NO tiene admin access</li><li>Backup completo de Firestore data</li></ul></div>
+
+        <div class="it-timeline-item"><div class="it-timeline-label now">PASO 2: Setup AWS (TFG LLC)</div>
+          <ul><li>Crear cuenta AWS bajo The Fitness Garage LLC</li><li>EC2/ECS para hosting web</li><li>RDS para base de datos relacional</li><li>S3 para assets estáticos</li><li>IAM roles con least privilege</li></ul></div>
+
+        <div class="it-timeline-item future"><div class="it-timeline-label future">PASO 3: Migrar Stripe Sync</div>
+          <ul><li>Mover webhooks de Stripe al server TFG</li><li>Sincronización de suscripciones</li><li>ZERO DOWNTIME obligatorio</li><li>Testing en modo test primero</li></ul></div>
+
+        <div class="it-timeline-item future"><div class="it-timeline-label future">PASO 4: DNS + SSL + Deploy</div>
+          <ul><li>Apuntar dominio a infraestructura TFG</li><li>SSL via Let's Encrypt</li><li>CI/CD pipeline propio (GitHub Actions)</li><li>Mover Next.js deployment de Vercel a AWS</li></ul></div>
+
+        <div class="it-timeline-item future"><div class="it-timeline-label future">PASO 5: Validación Final</div>
+          <ul><li>Testing completo de TODOS los flujos</li><li>Login, booking, pagos, sync iOS, nutrición</li><li>Rollback plan listo</li><li>Monitoreo 24/7 primera semana</li></ul></div>
+      </div>
+    </div>
+
+    <div class="it-section">
+      <div class="it-section-header" style="color:var(--red)">🔐 Reglas de Seguridad de Migración</div>
+      <div class="phase3-card" style="border-color:rgba(230,36,41,0.3);background:linear-gradient(135deg,rgba(230,36,41,0.06),rgba(230,36,41,0.02))">
+        <ul>
+          <li>NO migrar servidor hasta que Fase 2 web esté estable</li>
+          <li>BinaryClouds NO recibe acceso admin a AWS de TFG</li>
+          <li>Credenciales de producción (Stripe live, Firebase admin) SOLO Josué</li>
+          <li>Backups automáticos antes de cada paso de migración</li>
+          <li>DNS propagación: verificar 48h antes de desactivar origen</li>
+          <li>Firebase Security Rules: auditoría completa antes de migración</li>
+        </ul>
+      </div>
+    </div>
+
+    ${renderITMessagesHTML('it')}
+  </div>`;
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ═══ RENDER ══════════════════════════════════════════════════════
+function render() {
+  refreshLangData();
+  renderToolbar();
+  renderStats();
+
+  // Check if IT split view should be shown
+  if (isITAreaActive() && currentView === 'scope') {
+    if (activeArea === 'ai-infra') { renderAIInfraView(); return; }
+    if (activeArea === 'server') { renderServerMigrationView(); return; }
+    if (activeArea === 'it-launch') { renderAppLaunchView(); return; }
+    if (activeArea === 'it-appweb') {
+      if (currentUser && currentUser.username === 'binaryclouds') {
+        renderAppWebDevView();
+      } else {
+        renderAppWebOwnerView();
+      }
+      return;
+    }
+    if (currentUser && currentUser.username === 'binaryclouds') {
+      renderITViewBinaryClouds();
+    } else {
+      renderITViewJosue();
+    }
+    return;
+  }
+
+  if (currentView === 'gantt' || currentView === 'scope') renderGantt();
+  else renderFlow();
+}
+
+function renderToolbar() {
+  const tb = document.getElementById('toolbar');
+  const areasToTab = currentRole === 'owner' ? AREAS : AREAS.filter(a =>
+    ROLE_DEFAULTS[currentRole].areas.includes(a.id)
+  );
+
+  let html = `<button class="phase-btn ${activeArea === 'all' ? 'active' : ''}" onclick="activeArea='all';render()">${T('all')}</button>`;
+  // Total unread across all sections
+  const totalUnread = Object.values(sectionUnreadCounts).reduce((s,n) => s+n, 0);
+  if (totalUnread > 0) {
+    html = `<button class="phase-btn ${activeArea === 'all' ? 'active' : ''}" onclick="activeArea='all';render()">${T('all')} <span class="section-badge">${totalUnread}</span></button>`;
+  }
+
+  areasToTab.forEach(a => {
+    const badge = sectionUnreadCounts[a.id] ? ` <span class="section-badge">${sectionUnreadCounts[a.id]}</span>` : '';
+    html += `<button class="phase-btn ${activeArea === a.id ? 'active' : ''}" onclick="activeArea='${a.id}';render()"><span class="dot" style="background:${a.color}"></span>${a.label}${badge}</button>`;
+  });
+  html += `<div class="sep"></div>`;
+  html += `<button class="view-btn ${currentView === 'gantt' ? 'active' : ''}" onclick="currentView='gantt';render()">${T('gantt')}</button>`;
+  html += `<button class="view-btn ${currentView === 'flow' ? 'active' : ''}" onclick="currentView='flow';render()">${T('flow')}</button>`;
+  // Show IT Scope button when an IT area is active
+  if (isITAreaActive()) {
+    const scopeLabel = lang === 'es' ? '📋 Scope IT' : '📋 IT Scope';
+    html += `<button class="view-btn ${currentView === 'scope' ? 'active' : ''}" style="${currentView === 'scope' ? 'background:var(--cyan);color:var(--bg);border-color:var(--cyan)' : ''}" onclick="currentView='scope';render()">${scopeLabel}</button>`;
+  }
+  tb.innerHTML = html;
+}
+
+function renderStats() {
+  const ft = getFilteredTasks();
+  const total = ft.length;
+  const done = ft.filter(t => t.status === 'done').length;
+  const prog = ft.filter(t => t.status === 'progress').length;
+  const blocked = ft.filter(t => t.status === 'blocked' || isBlocked(t)).length;
+  const crit = ft.filter(t => t.priority === 'critical' && t.status !== 'done').length;
+  const milestones = ft.filter(t => t.type === 'milestone').length;
+  const avgProg = total ? Math.round(ft.reduce((s, t) => s + t.progress, 0) / total) : 0;
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-pill"><span class="num" style="color:var(--blue)">${total}</span> ${T('total')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--yellow)">${prog}</span> ${T('inProgress')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--red)">${blocked}</span> ${T('blocked')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--green)">${done}</span> ${T('completed')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--orange)">${crit}</span> ${T('critical')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--purple)">${milestones}</span> ${T('milestones')}</div>
+    <div class="stat-pill"><span class="num" style="color:var(--cyan)">${avgProg}%</span> ${T('avgProgress')}</div>
+  `;
+}
+
+// ═══ GANTT CHART ═════════════════════════════════════════════════
+function renderGantt() {
+  const ft = getFilteredTasks().sort((a, b) => {
+    const ao = AREAS.findIndex(x => x.id === a.area);
+    const bo = AREAS.findIndex(x => x.id === b.area);
+    if (ao !== bo) return ao - bo;
+    return new Date(a.start || '2026-12-31') - new Date(b.start || '2026-12-31');
+  });
+
+  let minDate = today(), maxDate = addDays(today(), 90);
+  ft.forEach(t => {
+    if (t.start && t.start < minDate) minDate = t.start;
+    if (t.end && t.end > maxDate) maxDate = t.end;
+  });
+  minDate = addDays(minDate, -7);
+  maxDate = addDays(maxDate, 14);
+  const totalDays = daysBetween(minDate, maxDate);
+  const cellW = 38;
+  const isOwner = currentUser && currentUser.role === 'owner';
+
+  let headerHtml = '';
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(addDays(minDate, i) + 'T12:00:00');
+    const isToday = addDays(minDate, i) === today();
+    const isWkend = d.getDay() === 0 || d.getDay() === 6;
+    const month = d.toLocaleDateString(lang === 'es' ? 'es' : 'en', { month: 'short' });
+    headerHtml += `<div class="gantt-header-cell${isToday ? ' today' : ''}${isWkend ? ' weekend' : ''}" style="min-width:${cellW}px">
+      ${d.getDate() === 1 ? `<div style="color:var(--red);font-weight:900">${month.toUpperCase()}</div>` : ''}
+      <div class="day">${d.getDate()}</div>
+      <div>${T('days')[d.getDay()]}</div>
+    </div>`;
+  }
+
+  let sidebarHtml = '';
+  let chartHtml = '';
+  let currentArea = '';
+  let rowNum = 0;
+
+  ft.forEach((t, idx) => {
+    const area = getArea(t.area);
+    if (t.area !== currentArea) {
+      currentArea = t.area;
+      sidebarHtml += `<div class="gantt-area-header" style="height:32px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;background:${area.color}15;border-bottom:1px solid var(--border);font-size:11px;font-weight:800;color:${area.color};letter-spacing:1px">${area.label}</div>`;
+      chartHtml += `<div style="height:32px;box-sizing:border-box;border-bottom:1px solid var(--border);background:${area.color}08"></div>`;
+    }
+
+    rowNum++;
+    const startDay = t.start ? daysBetween(minDate, t.start) : 0;
+    const duration = t.start && t.end ? daysBetween(t.start, t.end) + 1 : 1;
+    const blocked = isBlocked(t);
+    const dateLang = lang === 'es' ? 'es' : 'en';
+    const startFmt = t.start ? new Date(t.start + 'T12:00:00').toLocaleDateString(dateLang, { day: 'numeric', month: 'short' }) : '—';
+    const endFmt = t.end ? new Date(t.end + 'T12:00:00').toLocaleDateString(dateLang, { day: 'numeric', month: 'short' }) : '—';
+
+    // Badge + green flash for unread comments
+    let badgeHtml = '';
+    let hasUnread = false;
+    if (t.comments && t.comments.length > 0) {
+      const taskLastSeen = lastSeenComments[t.id];
+      const unreadCount = t.comments.filter(c => {
+        const isNew = !taskLastSeen || new Date(c.timestamp) > new Date(taskLastSeen);
+        const isOther = c.username !== getCurrentUsername();
+        return isNew && isOther;
+      }).length;
+      if (unreadCount > 0) {
+        hasUnread = true;
+        badgeHtml = `<div class="comment-badge">${unreadCount}</div>`;
+      }
+    }
+
+    const unreadClass = hasUnread ? ' has-unread' : '';
+    const draggable = isOwner ? ' draggable="true"' : '';
+
+    // Owner: inline-editable name and dates via dblclick
+    const nameClick = isOwner ? `ondblclick="event.stopPropagation();ganttInlineEdit(this,'title',${t.id})"` : '';
+    const startClick = isOwner ? `ondblclick="event.stopPropagation();ganttInlineEditDate(this,'start',${t.id})"` : '';
+    const endClick = isOwner ? `ondblclick="event.stopPropagation();ganttInlineEditDate(this,'end',${t.id})"` : '';
+
+    sidebarHtml += `<div class="gantt-row-sidebar${t.type === 'milestone' ? ' milestone' : ''}${unreadClass}" data-taskid="${t.id}" data-idx="${idx}" onclick="openPanel(${t.id})"${draggable}>
+      <div class="id">${rowNum}</div>
+      <div class="name" ${nameClick}>
+        ${t.type === 'milestone' ? '◆ ' : ''}${blocked ? '<span class="dep-icon" title="' + (lang==='es' ? 'Bloqueada — depende de tareas no completadas' : 'Blocked — depends on incomplete tasks') + '">🔒</span>' : ''}${t.title}
+      </div>
+      <div class="dates" ${startClick}>${startFmt}</div>
+      <div class="dates" ${endClick}>${endFmt}</div>
+      ${badgeHtml}
+    </div>`;
+
+    let cells = '';
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(addDays(minDate, i) + 'T12:00:00');
+      const isToday = addDays(minDate, i) === today();
+      const isWkend = d.getDay() === 0 || d.getDay() === 6;
+      cells += `<div class="gantt-cell${isToday ? ' today' : ''}${isWkend ? ' weekend' : ''}" style="min-width:${cellW}px"></div>`;
+    }
+
+    const barLeft = startDay * cellW;
+    const barWidth = Math.max(duration * cellW - 4, cellW - 4);
+    const statusColor = t.status === 'done' ? 'var(--green)' : t.status === 'progress' ? area.color : blocked ? 'var(--red)' : 'rgba(255,255,255,0.15)';
+    const barBg = t.status === 'done' ? area.hex + '99' : t.status === 'progress' ? area.hex + 'CC' : blocked ? '#E6242955' : area.hex + '66';
+
+    let barHtml = '';
+    if (t.type === 'milestone') {
+      barHtml = `<div class="gantt-milestone" style="left:${barLeft + 8}px;background:${barBg};border:2px solid ${statusColor}" onclick="openPanel(${t.id})"></div>`;
+    } else {
+      barHtml = `<div class="gantt-bar${t.status === 'done' ? ' completed' : ''}" style="left:${barLeft}px;width:${barWidth}px;background:${barBg};border:1px solid ${statusColor}" onclick="openPanel(${t.id})">
+        <div class="bar-progress" style="width:${t.progress}%"></div>
+        ${barWidth > 80 ? `<span style="position:relative;z-index:1">${t.progress}%</span>` : ''}
+      </div>`;
+    }
+
+    chartHtml += `<div class="gantt-row-chart" data-taskid="${t.id}">${cells}${barHtml}</div>`;
+  });
+
+  const todayOffset = daysBetween(minDate, today()) * cellW;
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="gantt-container">
+      <div class="gantt-sidebar">
+        <div class="gantt-sidebar-header"><div>#</div><div>${T('taskCol')}</div><div>${T('start')}</div><div>${T('end')}</div></div>
+        ${sidebarHtml}
+      </div>
+      <div class="gantt-chart">
+        <div class="gantt-header">${headerHtml}</div>
+        <div class="gantt-body" style="position:relative">
+          ${chartHtml}
+          <div class="today-line" style="left:${todayOffset}px" data-label="${T('today')}"></div>
+        </div>
+      </div>
+    </div>`;
+
+  // Auto-scroll to today line
+  setTimeout(() => {
+    const mainEl = document.querySelector('.main');
+    if (mainEl && todayOffset > 400) {
+      mainEl.scrollLeft = todayOffset - 200;
+    }
+  }, 50);
+
+  // Enable owner-only features
+  if (isOwner) {
+    enableGanttDragReorder();
+    enableGanttContextMenu();
+  }
+}
+
+// ═══ INLINE EDITING (owner only) ════════════════════════════════
+function ganttInlineEdit(cell, field, taskId) {
+  const task = getTask(taskId);
+  if (!task || !currentUser || currentUser.role !== 'owner') return;
+  const original = task[field] || '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = original;
+  input.className = 'gantt-inline-edit';
+  cell.innerHTML = '';
+  cell.appendChild(input);
+  input.focus();
+  input.select();
+  function save() {
+    const newVal = input.value.trim();
+    if (newVal && newVal !== original) {
+      task[field] = newVal;
+      render();
+    } else {
+      render();
+    }
+  }
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = original; input.blur(); }
+  });
+}
+
+function ganttInlineEditDate(cell, field, taskId) {
+  const task = getTask(taskId);
+  if (!task || !currentUser || currentUser.role !== 'owner') return;
+  const original = task[field] || '';
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = original;
+  input.className = 'gantt-inline-edit';
+  cell.innerHTML = '';
+  cell.appendChild(input);
+  input.focus();
+  function save() {
+    const newVal = input.value;
+    if (newVal && newVal !== original) {
+      if (field === 'end' && task.start && newVal < task.start) {
+        alert(lang === 'es' ? 'La fecha fin debe ser después del inicio' : 'End date must be after start date');
+        render();
+        return;
+      }
+      if (field === 'start' && task.end && newVal > task.end) {
+        alert(lang === 'es' ? 'La fecha inicio debe ser antes del fin' : 'Start date must be before end date');
+        render();
+        return;
+      }
+      task[field] = newVal;
+      render();
+    } else {
+      render();
+    }
+  }
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = original; input.blur(); }
+  });
+}
+
+// ═══ DRAG TO REORDER (owner only) ═══════════════════════════════
+function enableGanttDragReorder() {
+  const rows = document.querySelectorAll('.gantt-row-sidebar[draggable]');
+  let draggedId = null;
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      draggedId = parseInt(row.dataset.taskid);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedId);
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      const targetId = parseInt(row.dataset.taskid);
+      if (draggedId !== null && draggedId !== targetId) {
+        const dragIdx = tasks.findIndex(t => t.id === draggedId);
+        const targetIdx = tasks.findIndex(t => t.id === targetId);
+        if (dragIdx > -1 && targetIdx > -1) {
+          const [moved] = tasks.splice(dragIdx, 1);
+          tasks.splice(targetIdx, 0, moved);
+          render();
+        }
+      }
+      draggedId = null;
+    });
+  });
+}
+
+// ═══ RIGHT-CLICK CONTEXT MENU (owner only) ══════════════════════
+function enableGanttContextMenu() {
+  const sidebar = document.querySelector('.gantt-sidebar');
+  if (!sidebar) return;
+  sidebar.addEventListener('contextmenu', function(e) {
+    const row = e.target.closest('.gantt-row-sidebar');
+    if (!row) return;
+    e.preventDefault();
+    removeGanttContextMenu();
+    const taskId = parseInt(row.dataset.taskid);
+    const menu = document.createElement('div');
+    menu.id = 'ganttCtxMenu';
+    menu.className = 'gantt-ctx-menu';
+    const aboveLabel = lang === 'es' ? '➕ Agregar tarea arriba' : '➕ Add task above';
+    const belowLabel = lang === 'es' ? '➕ Agregar tarea abajo' : '➕ Add task below';
+    menu.innerHTML = `
+      <div class="gantt-ctx-item" data-action="above">${aboveLabel}</div>
+      <div class="gantt-ctx-item" data-action="below">${belowLabel}</div>
+    `;
+    menu.style.top = e.clientY + 'px';
+    menu.style.left = e.clientX + 'px';
+    menu.querySelectorAll('.gantt-ctx-item').forEach(item => {
+      item.addEventListener('click', () => {
+        addTaskRelative(taskId, item.dataset.action);
+        removeGanttContextMenu();
+      });
+    });
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', removeGanttContextMenu, { once: true }), 10);
+  });
+}
+
+function removeGanttContextMenu() {
+  const m = document.getElementById('ganttCtxMenu');
+  if (m) m.remove();
+}
+
+function addTaskRelative(refTaskId, position) {
+  const refIdx = tasks.findIndex(t => t.id === refTaskId);
+  if (refIdx === -1) return;
+  const refTask = tasks[refIdx];
+  const maxId = Math.max(...tasks.map(t => t.id)) + 1;
+  const newTask = {
+    id: maxId,
+    title: lang === 'es' ? 'Nueva Tarea' : 'New Task',
+    area: refTask.area,
+    phase: refTask.phase,
+    priority: 'medium',
+    status: 'pending',
+    start: today(),
+    end: addDays(today(), 7),
+    progress: 0,
+    type: 'task',
+    deps: [],
+    desc: '',
+    comments: []
+  };
+  const insertIdx = position === 'above' ? refIdx : refIdx + 1;
+  tasks.splice(insertIdx, 0, newTask);
+  render();
+}
+
+// ═══ FLOW VIEW ═══════════════════════════════════════════════════
+function renderFlow() {
+  const ft = getFilteredTasks();
+  let html = '';
+
+  const areasToShow = activeArea === 'all' ? AREAS : AREAS.filter(a => a.id === activeArea);
+
+  areasToShow.forEach(area => {
+    const areaTasks = ft.filter(t => t.area === area.id).sort((a, b) => {
+      return new Date(a.start || '2026-12-31') - new Date(b.start || '2026-12-31');
+    });
+    if (!areaTasks.length) return;
+
+    html += `<div class="flow-area">
+      <div class="flow-area-title"><div class="area-dot" style="background:${area.color}"></div>${area.label}</div>
+      <div class="flow-track">`;
+
+    areaTasks.forEach((t, i) => {
+      if (i > 0) html += `<div class="flow-arrow">→</div>`;
+      const blocked = isBlocked(t);
+      const statusColor = t.status === 'done' ? 'var(--green)' : t.status === 'progress' ? area.color : blocked ? 'var(--red)' : 'var(--t3)';
+      const nodeClass = t.status === 'done' ? 'done' : blocked ? 'blocked' : '';
+      const dl = lang === 'es' ? 'es' : 'en';
+      const startFmt = t.start ? new Date(t.start + 'T12:00:00').toLocaleDateString(dl, { day: 'numeric', month: 'short' }) : '—';
+      const endFmt = t.end ? new Date(t.end + 'T12:00:00').toLocaleDateString(dl, { day: 'numeric', month: 'short' }) : '—';
+      const depNames = t.deps.map(d => { const dt = getTask(d); return dt ? `#${d}` : ''; }).filter(Boolean).join(', ');
+
+      html += `<div>
+        <div class="flow-node ${nodeClass}" onclick="openPanel(${t.id})" style="border-left:3px solid ${statusColor}">
+          <div class="node-status" style="background:${statusColor}"></div>
+          <div class="node-title">${t.type === 'milestone' ? '◆ ' : ''}${t.title}</div>
+          <div class="node-meta">
+            <span>📅 ${startFmt}</span>
+            <span>${t.progress}%</span>
+          </div>
+        </div>
+        ${depNames ? `<div class="flow-dep-label">${T('dependsOn')} ${depNames}</div>` : ''}
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('mainContent').innerHTML = `<div class="flow-container">${html}</div>`;
+}
+
+// ═══ PANEL ═══════════════════════════════════════════════════════
+function openPanel(id) {
+  const isEdit = id !== undefined;
+  const t = isEdit ? getTask(id) : null;
+
+  document.getElementById('panelTitle').textContent = isEdit ? T('editTask') : T('newTaskTitle');
+  document.getElementById('deleteTaskBtn').style.display = isEdit ? 'block' : 'none';
+  document.getElementById('deleteTaskBtn').textContent = T('delete');
+  document.getElementById('editTaskId').value = isEdit ? id : '';
+
+  document.getElementById('fArea').innerHTML = AREAS.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
+  document.getElementById('fPhase').innerHTML = PHASES.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = T(el.dataset.i18n);
+  });
+  document.getElementById('fTitle').placeholder = T('taskPlaceholder');
+  document.getElementById('fDesc').placeholder = T('descPlaceholder');
+
+  const fP = document.getElementById('fPriority');
+  fP.innerHTML = `<option value="critical">${T('priCritical')}</option><option value="high">${T('priHigh')}</option><option value="medium">${T('priMedium')}</option><option value="low">${T('priLow')}</option>`;
+
+  const fS = document.getElementById('fStatus');
+  fS.innerHTML = `<option value="blocked">${T('stBlocked')}</option><option value="pending">${T('stPending')}</option><option value="progress">${T('stProgress')}</option><option value="done">${T('stDone')}</option>`;
+
+  const fT = document.getElementById('fType');
+  fT.innerHTML = `<option value="task">${T('typeTask')}</option><option value="milestone">${T('typeMilestone')}</option>`;
+
+  document.getElementById('saveTaskBtn').textContent = T('save');
+  document.getElementById('saveTaskBtnTop').textContent = T('save');
+  document.getElementById('cancelBtn').textContent = T('cancel');
+  document.getElementById('addCommentBtn').textContent = T('send');
+  document.getElementById('commentInput').placeholder = getCurrentAuthor() + ': write a comment...';
+
+  if (isEdit) {
+    document.getElementById('fTitle').value = t.title;
+    document.getElementById('fArea').value = t.area;
+    document.getElementById('fPhase').value = t.phase;
+    document.getElementById('fPriority').value = t.priority;
+    document.getElementById('fStatus').value = t.status;
+    document.getElementById('fStart').value = t.start || '';
+    document.getElementById('fEnd').value = t.end || '';
+    document.getElementById('fProgress').value = t.progress;
+    document.getElementById('fProgressLabel').textContent = t.progress + '%';
+    document.getElementById('fDesc').value = t.desc || '';
+    document.getElementById('fType').value = t.type || 'task';
+    editDeps = [...t.deps];
+
+    // Mark comments as seen (persisted in localStorage per user)
+    if (t.comments && t.comments.length > 0) {
+      saveLastSeen(id);
+      renderComments(id);
+    } else {
+      document.getElementById('commentsList').innerHTML = '<div style="color:var(--t3);font-size:11px">No comments yet</div>';
+    }
+  } else {
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fArea').value = 'it-web';
+    document.getElementById('fPhase').value = 'phase0';
+    document.getElementById('fPriority').value = 'medium';
+    document.getElementById('fStatus').value = 'pending';
+    document.getElementById('fStart').value = today();
+    document.getElementById('fEnd').value = addDays(today(), 7);
+    document.getElementById('fProgress').value = 0;
+    document.getElementById('fProgressLabel').textContent = '0%';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fType').value = 'task';
+    editDeps = [];
+    document.getElementById('commentsList').innerHTML = '<div style="color:var(--t3);font-size:11px">No comments yet</div>';
+  }
+
+  renderDepChips();
+  renderDepSelect();
+
+  // Apply permissions
+  const admin = isAdmin();
+  document.getElementById('fTitle').disabled = !admin;
+  document.getElementById('fArea').disabled = !admin;
+  document.getElementById('fStart').disabled = !admin;
+  document.getElementById('fEnd').disabled = !admin;
+  document.getElementById('fProgress').disabled = !admin;
+  document.getElementById('fDesc').disabled = !admin;
+
+  // Hide admin-only elements for non-admins
+  document.getElementById('adminFieldRow1').style.display = admin ? '' : 'none';
+  document.getElementById('adminFieldType').style.display = admin ? '' : 'none';
+  document.getElementById('adminFieldDeps').style.display = admin ? '' : 'none';
+  document.getElementById('deleteTaskBtn').style.display = (isEdit && admin) ? 'block' : 'none';
+  document.getElementById('saveTaskBtn').style.display = admin ? '' : 'none';
+  document.getElementById('topSaveBtns').style.display = admin ? 'flex' : 'none';
+
+  // Phase: for non-admin, replace dropdown with text
+  if (!admin) {
+    const phaseSelect = document.getElementById('fPhase');
+    const phaseText = phaseSelect.options[phaseSelect.selectedIndex]?.text || '';
+    phaseSelect.style.display = 'none';
+    // Add or update a span showing phase text
+    let phaseSpan = document.getElementById('fPhaseText');
+    if (!phaseSpan) {
+      phaseSpan = document.createElement('span');
+      phaseSpan.id = 'fPhaseText';
+      phaseSpan.style.cssText = 'display:block;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600';
+      phaseSelect.parentNode.appendChild(phaseSpan);
+    }
+    phaseSpan.textContent = phaseText;
+    phaseSpan.style.display = 'block';
+  } else {
+    document.getElementById('fPhase').style.display = '';
+    const phaseSpan = document.getElementById('fPhaseText');
+    if (phaseSpan) phaseSpan.style.display = 'none';
+  }
+
+  document.getElementById('panelOverlay').classList.add('show');
+  document.getElementById('panel').classList.add('show');
+  setTimeout(() => document.getElementById('fTitle').focus(), 200);
+}
+
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('show');
+  document.getElementById('panel').classList.remove('show');
+  document.getElementById('commentInput').value = '';
+}
+
+function renderDepChips() {
+  const el = document.getElementById('depChips');
+  el.innerHTML = editDeps.map(d => {
+    const t = getTask(d);
+    return `<div class="dep-chip">#${d} ${t ? t.title.slice(0, 30) : '?'} <span class="remove" onclick="removeDep(${d})">✕</span></div>`;
+  }).join('');
+}
+
+function renderDepSelect() {
+  const editId = parseInt(document.getElementById('editTaskId').value) || 0;
+  const el = document.getElementById('depSelect');
+  el.innerHTML = `<option value="">${T('selectTask')}</option>` +
+    tasks.filter(t => t.id !== editId && !editDeps.includes(t.id))
+      .map(t => `<option value="${t.id}">#${t.id} ${t.title.slice(0, 40)}</option>`).join('');
+  document.getElementById('addDepBtn').textContent = T('addDep');
+}
+
+function addDep() {
+  const sel = document.getElementById('depSelect');
+  const val = parseInt(sel.value);
+  if (!val) return;
+  editDeps.push(val);
+  renderDepChips();
+  renderDepSelect();
+}
+
+function removeDep(id) {
+  editDeps = editDeps.filter(d => d !== id);
+  renderDepChips();
+  renderDepSelect();
+}
+
+function saveTask() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) return;
+  const editId = document.getElementById('editTaskId').value;
+  const data = {
+    title,
+    area: document.getElementById('fArea').value,
+    phase: document.getElementById('fPhase').value,
+    priority: document.getElementById('fPriority').value,
+    status: document.getElementById('fStatus').value,
+    start: document.getElementById('fStart').value,
+    end: document.getElementById('fEnd').value,
+    progress: parseInt(document.getElementById('fProgress').value),
+    desc: document.getElementById('fDesc').value.trim(),
+    type: document.getElementById('fType').value,
+    deps: [...editDeps]
+  };
+
+  if (editId) {
+    const t = getTask(parseInt(editId));
+    if (t) Object.assign(t, data);
+  } else {
+    tasks.push({ id: nextId++, ...data, comments: [] });
+  }
+
+  closePanel();
+  render();
+}
+
+function deleteTask() {
+  const editId = parseInt(document.getElementById('editTaskId').value);
+  if (!editId) return;
+  if (!confirm(T('deleteConfirm'))) return;
+  tasks = tasks.filter(t => t.id !== editId);
+  tasks.forEach(t => { t.deps = t.deps.filter(d => d !== editId); });
+  closePanel();
+  render();
+}
+
+// ═══ EXPORT / IMPORT ════════════════════════════════════════════
+function exportData() {
+  const data = JSON.stringify({
+    tasks,
+    users,
+    nextId,
+    logoBase64,
+    lang,
+    currentRole,
+    version: 5,
+    exportDate: new Date().toISOString(),
+    project: 'The Fitness Garage',
+    note: 'Comments are synced via Firebase Firestore in real-time. Exported comments are a snapshot.'
+  }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `TFG_Programa_Maestro_${today()}.json`;
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.tasks) {
+        tasks = data.tasks;
+        nextId = data.nextId || 200;
+        if (data.logoBase64) {
+          logoBase64 = data.logoBase64;
+          const circle = document.getElementById('logoCircle');
+          circle.classList.remove('empty');
+          circle.innerHTML = `<img src="${logoBase64}">`;
+        }
+        if (data.users) users = data.users;
+        if (data.lang) setLang(data.lang);
+        if (data.currentRole) setRole(data.currentRole);
+        render();
+      }
+    } catch (err) { alert(T('invalidFile')); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ═══ MESSAGING MODULE ════════════════════════════════════════════
+let msgChats = [];          // All conversations
+let msgCurrentChatId = null; // Currently open chat
+let msgListener = null;      // Firestore listener for conversations
+let msgMsgListener = null;   // Firestore listener for messages
+let adminPhotoFile = null;   // Photo to send
+let msgTotalUnread = 0;
+
+function openMessaging() {
+  document.getElementById('msgOverlay').classList.add('show');
+  document.getElementById('msgPanel').classList.add('show');
+  document.getElementById('msgListView').style.display = 'block';
+  document.getElementById('msgDetailView').classList.remove('show');
+  startMsgListener();
+}
+
+function closeMessaging() {
+  document.getElementById('msgOverlay').classList.remove('show');
+  document.getElementById('msgPanel').classList.remove('show');
+  msgCurrentChatId = null;
+  if (msgMsgListener) { msgMsgListener(); msgMsgListener = null; }
+}
+
+function startMsgListener() {
+  if (msgListener) return;
+  msgListener = db.collection('chats')
+    .where('status', '==', 'active')
+    .orderBy('lastMessageAt', 'desc')
+    .onSnapshot(snap => {
+      msgChats = [];
+      msgTotalUnread = 0;
+      snap.forEach(doc => {
+        const d = doc.data();
+        const chat = {
+          id: doc.id,
+          name: d.participantName || 'App User',
+          email: d.participantEmail || '',
+          photoURL: d.participantPhotoURL || '',
+          lastMessage: d.lastMessage || '',
+          lastMessageAt: d.lastMessageAt ? d.lastMessageAt.toDate() : new Date(),
+          lastSenderType: d.lastSenderType || '',
+          unreadByAdmin: d.unreadByAdmin || 0
+        };
+        msgChats.push(chat);
+        msgTotalUnread += chat.unreadByAdmin;
+      });
+      renderChatList();
+      updateMsgBadge();
+    }, err => {
+      console.error('[Msg] Listener error:', err);
+    });
+}
+
+function updateMsgBadge() {
+  const badge = document.getElementById('msgTotalBadge');
+  const dot = document.getElementById('msgNotifDot');
+  if (msgTotalUnread > 0) {
+    badge.textContent = msgTotalUnread;
+    badge.style.display = 'flex';
+    dot.classList.add('show');
+  } else {
+    badge.style.display = 'none';
+    dot.classList.remove('show');
+  }
+}
+
+function renderChatList() {
+  const list = document.getElementById('msgChatList');
+  if (msgChats.length === 0) {
+    list.innerHTML = '<div class="msg-empty">No conversations yet.<br>Users will appear here when they send messages from the app.</div>';
+    return;
+  }
+  list.innerHTML = msgChats.map(c => {
+    const initials = c.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    const avatarHtml = c.photoURL
+      ? `<div class="msg-avatar" style="padding:0;overflow:hidden"><img src="${escHtml(c.photoURL)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='${initials}'"></div>`
+      : `<div class="msg-avatar">${initials}</div>`;
+    const timeStr = formatMsgTime(c.lastMessageAt);
+    const unreadClass = c.unreadByAdmin > 0 ? ' unread' : '';
+    const activeClass = c.id === msgCurrentChatId ? ' active' : '';
+    const unreadBadge = c.unreadByAdmin > 0 ? `<span class="msg-chat-unread">${c.unreadByAdmin}</span>` : '';
+    const preview = c.lastMessage || 'No messages yet';
+    return `<div class="msg-chat-item${unreadClass}${activeClass}" onclick="openChat('${c.id}')">
+      ${avatarHtml}
+      <div class="msg-chat-info">
+        <div class="msg-chat-name">${escHtml(c.name)}</div>
+        <div class="msg-chat-preview">${escHtml(preview)}</div>
+      </div>
+      <span class="msg-chat-time">${timeStr}</span>
+      ${unreadBadge}
+    </div>`;
+  }).join('');
+}
+
+function openChat(chatId) {
+  msgCurrentChatId = chatId;
+  const chat = msgChats.find(c => c.id === chatId);
+  if (chat) {
+    document.getElementById('msgDetailName').textContent = chat.name;
+    document.getElementById('msgDetailEmail').textContent = chat.email;
+    const avatar = document.getElementById('msgDetailAvatar');
+    const initials = chat.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    if (chat.photoURL) {
+      avatar.innerHTML = `<img src="${escHtml(chat.photoURL)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='${initials}'">`;
+      avatar.style.padding = '0';
+      avatar.style.overflow = 'hidden';
+    } else {
+      avatar.textContent = initials;
+      avatar.style.padding = '';
+      avatar.style.overflow = '';
+    }
+  }
+  document.getElementById('msgListView').style.display = 'none';
+  document.getElementById('msgDetailView').classList.add('show');
+  document.getElementById('msgInput').value = '';
+  removeAdminPhoto();
+
+  // Mark as read
+  db.collection('chats').doc(chatId).update({ unreadByAdmin: 0 });
+
+  // Listen to messages
+  if (msgMsgListener) msgMsgListener();
+  msgMsgListener = db.collection('chats').doc(chatId)
+    .collection('messages')
+    .orderBy('timestamp', 'asc')
+    .onSnapshot(snap => {
+      const container = document.getElementById('msgMessages');
+      let html = '';
+      snap.forEach(doc => {
+        const m = doc.data();
+        const isAdmin = m.senderType === 'admin';
+        const cls = isAdmin ? 'admin' : 'user';
+        const senderLabel = isAdmin ? (m.senderName || 'Admin') : (m.senderName || 'User');
+        const time = m.timestamp ? formatMsgTime(m.timestamp.toDate()) : '';
+        let photoHtml = '';
+        if (m.photoURL && m.photoURL !== 'null' && m.photoURL !== '<null>') {
+          photoHtml = `<img src="${escHtml(m.photoURL)}" onclick="zoomPhoto('${escHtml(m.photoURL)}')" loading="lazy">`;
+        }
+        // Show translated text for user messages (from app) if available
+        const displayText = (!isAdmin && m.translatedText) ? escHtml(m.translatedText) : (m.text ? escHtml(m.text) : '');
+        const originalText = (!isAdmin && m.translatedText) ? escHtml(m.text) : '';
+        const langBadge = (!isAdmin && m.translatedText && m.originalLanguage)
+          ? `<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:2px">🌐 Translated from ${m.originalLanguage.toUpperCase()}</div>`
+          : '';
+        const originalHint = originalText
+          ? `<div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:3px;font-style:italic;cursor:pointer" title="Original message" onclick="this.textContent=this.textContent==='Show original'?'${originalText}':'Show original'">Show original</div>`
+          : '';
+        html += `<div class="msg-bubble ${cls}">
+          <div class="msg-sender">${escHtml(senderLabel)}</div>
+          ${photoHtml}
+          ${displayText ? `<div>${displayText}</div>` : ''}
+          ${langBadge}
+          ${originalHint}
+          <div class="msg-time">${time}</div>
+        </div>`;
+      });
+      if (!html) html = '<div class="msg-empty" style="padding:60px 0">Start the conversation by sending a message below.</div>';
+      container.innerHTML = html;
+      container.scrollTop = container.scrollHeight;
+    });
+
+  renderChatList(); // Update active state
+}
+
+function backToList() {
+  if (msgMsgListener) { msgMsgListener(); msgMsgListener = null; }
+  msgCurrentChatId = null;
+  document.getElementById('msgDetailView').classList.remove('show');
+  document.getElementById('msgListView').style.display = 'block';
+  renderChatList();
+}
+
+async function sendAdminMessage() {
+  if (!msgCurrentChatId) return;
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text && !adminPhotoFile) return;
+
+  const senderName = currentUser ? currentUser.displayName : 'TFG Admin';
+  let photoURL = null;
+
+  // Upload photo if attached
+  if (adminPhotoFile) {
+    try {
+      const fileName = Date.now() + '_' + adminPhotoFile.name;
+      const ref = storageRef.ref('chat_photos/' + msgCurrentChatId + '/' + fileName);
+      await ref.put(adminPhotoFile);
+      photoURL = await ref.getDownloadURL();
+    } catch (err) {
+      console.error('[Msg] Photo upload error:', err);
+      alert('Failed to upload photo. Please try again.');
+      return;
+    }
+  }
+
+  try {
+    // Auto-translate admin message for user (Lyft-style)
+    let translatedText = null;
+    let detectedLang = 'en'; // Default admin language
+    if (text) {
+      try {
+        const resp = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=${encodeURIComponent(text)}`);
+        const data = await resp.json();
+        if (data && data[0]) {
+          translatedText = data[0].map(s => s[0]).join('');
+          detectedLang = data[2] || 'en';
+          // If admin wrote in Spanish, translate to English for storage as translated
+          if (detectedLang === 'es') {
+            const resp2 = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=es&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+            const data2 = await resp2.json();
+            translatedText = data2[0].map(s => s[0]).join('');
+          }
+          // If detected same as target, no translation needed
+          if (detectedLang === 'es') translatedText = null;
+        }
+      } catch (e) { console.log('[Msg] Translation skipped:', e); }
+    }
+
+    await db.collection('chats').doc(msgCurrentChatId)
+      .collection('messages').add({
+        text: text,
+        photoURL: photoURL || null,
+        senderType: 'admin',
+        senderName: senderName,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        readByAdmin: true,
+        readByUser: false,
+        originalLanguage: detectedLang,
+        translatedText: translatedText || null
+      });
+
+    const lastMsg = photoURL ? (text || '📷 Photo') : text;
+    await db.collection('chats').doc(msgCurrentChatId).update({
+      lastMessage: lastMsg,
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastSenderType: 'admin',
+      unreadByUser: firebase.firestore.FieldValue.increment(1)
+    });
+
+    input.value = '';
+    removeAdminPhoto();
+  } catch (err) {
+    console.error('[Msg] Send error:', err);
+    alert('Failed to send message.');
+  }
+}
+
+function handleAdminPhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  adminPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('msgPhotoThumb').src = e.target.result;
+    document.getElementById('msgPhotoPreview').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removeAdminPhoto() {
+  adminPhotoFile = null;
+  document.getElementById('msgPhotoPreview').style.display = 'none';
+  document.getElementById('msgPhotoThumb').src = '';
+}
+
+function zoomPhoto(url) {
+  document.getElementById('photoZoomImg').src = url;
+  document.getElementById('photoZoom').classList.add('show');
+}
+
+function formatMsgTime(date) {
+  if (!date) return '';
+  const now = new Date();
+  const diff = now - date;
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h';
+  return date.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// Auto-start listener after login
+const _origDoLogin = typeof doLogin === 'function' ? doLogin : null;
+
+// ═══ KEYBOARD ════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (e.key === 'n' && !e.target.closest('input,textarea,select') && !document.getElementById('panel').classList.contains('show')) {
+    e.preventDefault();
+    openPanel();
+  }
+});
+
+// ═══ INIT ════════════════════════════════════════════════════════
+// App starts with login screen visible, app hidden.
+// After login, doLogin() shows the app and sets role based on user.
+
+// Pre-render (hidden) so first paint after login is instant
+updateStaticUI();
+render();
+
+// Focus login username
+setTimeout(() => document.getElementById('loginUser').focus(), 200);
+</script>
+</body>
+</html>
