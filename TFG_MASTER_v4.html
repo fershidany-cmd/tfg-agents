@@ -833,6 +833,8 @@ async function agDictateCorrection(){
     const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No JSON in response');
     agRData=JSON.parse(m[0]);
     agFillEditFields(agRData);
+    // Auto-rebuild DALL-E prompt if Step 03 is visible
+    if(!document.getElementById('ag-r3').classList.contains('ag-hidden')){agBuildPrompt();}
     agSt('ag-dictate-st','✓ Corrección aplicada','ag-ok');
     document.getElementById('ag-dictate').value='';
   }catch(e){agSt('ag-dictate-st',e.message,'ag-err');}
