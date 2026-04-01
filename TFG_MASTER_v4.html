@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFG — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #E8261A;
+  --red2: rgba(232,38,26,0.15);
+  --dark: #080810;
+  --dark2: #0f0f1a;
+  --dark3: #16162a;
+  --dark4: #1e1e35;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --t1: #ffffff;
+  --t2: rgba(255,255,255,0.65);
+  --t3: rgba(255,255,255,0.35);
+  --green: #22C55E;
+  --amber: #F59E0B;
+  --blue: #60A5FA;
+  --cyan: #22D3EE;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--t1);height:100vh;overflow:hidden;}
+::selection{background:var(--red);color:#fff;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px;}
+
+/* ═══ STARFIELD ═══ */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d) ease-in-out infinite;}
+@keyframes twinkle{0%,100%{opacity:var(--min-op);transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+.meteor{position:absolute;top:var(--mt);left:var(--ml);width:var(--mw);height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,200,200,0.9),rgba(232,38,26,0.6),rgba(255,255,255,0));transform:rotate(var(--mr));animation:meteor var(--md) linear infinite;animation-delay:var(--mdelay);opacity:0;}
+@keyframes meteor{0%{opacity:0;transform:rotate(var(--mr)) translateX(0);}5%{opacity:1;}80%{opacity:1;}100%{opacity:0;transform:rotate(var(--mr)) translateX(120vw);}}
+
+/* ═══ LOGIN ═══ */
+#login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(232,38,26,0.08) 0%,transparent 70%);}
+.login-box{position:relative;width:420px;max-width:92vw;padding:48px 40px;background:rgba(15,15,26,0.85);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.1);border-radius:24px;box-shadow:0 0 80px rgba(232,38,26,0.1),0 32px 64px rgba(0,0,0,0.6);animation:boxIn .6s cubic-bezier(0.16,1,0.3,1);}
+@keyframes boxIn{from{opacity:0;transform:translateY(30px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+.login-glow{position:absolute;top:-1px;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--red),transparent);border-radius:50%;}
+.login-logo{width:72px;height:72px;border-radius:50%;border:2px solid var(--red);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red);background:rgba(232,38,26,0.08);position:relative;}
+.login-logo::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(232,38,26,0.2);animation:logoPulse 2s ease-in-out infinite;}
+@keyframes logoPulse{0%,100%{transform:scale(1);opacity:0.5;}50%{transform:scale(1.08);opacity:1;}}
+.login-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:.15em;text-align:center;color:#fff;}
+.login-title span{color:var(--red);}
+.login-sub{text-align:center;font-size:11px;color:var(--t3);letter-spacing:.15em;text-transform:uppercase;margin-top:4px;margin-bottom:32px;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;font-family:'Space Mono',monospace;}
+.login-field input{width:100%;padding:13px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;transition:all .2s;outline:none;}
+.login-field input:focus{border-color:var(--red);background:rgba(232,38,26,0.05);box-shadow:0 0 0 3px rgba(232,38,26,0.1);}
+.login-field input::placeholder{color:rgba(255,255,255,0.2);}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:.08em;font-family:'DM Sans',sans-serif;transition:all .2s;position:relative;overflow:hidden;}
+.login-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity .2s;}
+.login-btn:hover{background:#c41f14;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,38,26,0.4);}
+.login-btn:hover::after{opacity:1;}
+.login-btn:active{transform:translateY(0);}
+.login-err{color:var(--red);font-size:12px;font-weight:600;text-align:center;margin-top:10px;min-height:18px;font-family:'Space Mono',monospace;}
+.login-footer{text-align:center;margin-top:24px;font-size:10px;color:var(--t3);letter-spacing:.08em;}
+
+/* ═══ APP ═══ */
+#app{display:none;height:100vh;display:grid;grid-template-rows:auto auto 1fr;position:relative;z-index:1;}
+#app.visible{display:grid;}
+
+/* TOPBAR */
+.topbar{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(8,8,16,0.9);backdrop-filter:blur(12px);}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.top-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.12em;color:var(--red);}
+.top-sub{font-size:11px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.chip{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:var(--dark3);border:1px solid var(--border);color:var(--t2);}
+.tbtn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tbtn:hover{background:var(--dark3);color:var(--t1);}
+
+/* TOOLBAR */
+.toolbar{padding:10px 24px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);overflow-x:auto;background:rgba(8,8,16,0.7);}
+.area-btn{padding:6px 14px;border-radius:20px;border:1px solid transparent;background:transparent;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;letter-spacing:.04em;}
+.area-btn:hover{color:var(--t2);border-color:var(--border);}
+.area-btn.active{background:var(--red);color:#fff;border-color:var(--red);}
+.area-btn .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+.sep{width:1px;height:22px;background:var(--border);margin:0 6px;flex-shrink:0;}
+.view-btn{padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.view-btn:hover{color:var(--t1);background:var(--dark3);}
+.view-btn.active{background:var(--dark3);color:var(--t1);border-color:var(--border2);}
+.view-btn.agents-btn{border-color:rgba(232,38,26,0.3);color:rgba(232,38,26,0.8);}
+.view-btn.agents-btn.active{background:var(--red);color:#fff;border-color:var(--red);}
+
+/* MAIN */
+.main{overflow:auto;position:relative;}
+
+/* ═══ GANTT ═══ */
+.gantt-wrap{display:flex;min-height:100%;}
+.g-sidebar{width:360px;min-width:360px;border-right:1px solid var(--border2);background:var(--dark2);position:sticky;left:0;z-index:10;}
+.g-sh{display:grid;grid-template-columns:32px 1fr 60px 60px;padding:0 10px;height:42px;align-items:center;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;position:sticky;top:0;background:var(--dark2);z-index:5;}
+.g-row{display:grid;grid-template-columns:32px 1fr 60px 60px;padding:0 10px;height:36px;border-bottom:1px solid var(--border);align-items:center;font-size:12px;cursor:pointer;transition:background .15s;}
+.g-row:hover{background:rgba(255,255,255,0.03);}
+.g-row .gid{color:var(--t3);font-size:10px;text-align:center;font-family:'Space Mono',monospace;}
+.g-row .gname{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+.g-row .gdates{font-size:10px;color:var(--t3);text-align:center;font-family:'Space Mono',monospace;}
+.g-chart{flex:0 0 auto;}
+.g-ch{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--dark2);z-index:4;}
+.g-hcell{min-width:36px;height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,0.02);font-size:9px;color:var(--t3);font-family:'Space Mono',monospace;}
+.g-hcell.today{background:rgba(232,38,26,0.08);color:var(--red);}
+.g-hcell.weekend{background:rgba(255,255,255,0.01);}
+.g-crow{display:flex;height:36px;border-bottom:1px solid var(--border);position:relative;}
+.g-cell{min-width:36px;border-right:1px solid rgba(255,255,255,0.015);}
+.g-cell.today{background:rgba(232,38,26,0.04);}
+.g-cell.weekend{background:rgba(255,255,255,0.008);}
+.g-bar{position:absolute;height:20px;top:8px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;cursor:pointer;z-index:2;min-width:20px;transition:filter .15s;}
+.g-bar:hover{filter:brightness(1.2);}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:3;opacity:0.6;}
+
+/* ═══ FLOW ═══ */
+.flow-wrap{padding:20px 24px;}
+.flow-group{margin-bottom:24px;}
+.flow-group-title{font-size:12px;font-weight:700;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.flow-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+.flow-card{background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;}
+.flow-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.flow-card-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px;}
+.flow-card-desc{font-size:11px;color:var(--t3);line-height:1.5;}
+.flow-card-meta{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;}
+.badge-done{background:rgba(34,197,94,0.15);color:#22C55E;}
+.badge-progress{background:rgba(96,165,250,0.15);color:#60A5FA;}
+.badge-pending{background:rgba(255,255,255,0.08);color:var(--t3);}
+.badge-blocked{background:rgba(239,68,68,0.15);color:#EF4444;}
+.badge-high{background:rgba(239,68,68,0.1);color:#F87171;}
+.badge-medium{background:rgba(245,158,11,0.1);color:#FBB13;}
+.badge-low{background:rgba(34,197,94,0.1);color:#4ADE80;}
+
+/* ═══ AGENTS ═══ */
+.agents-wrap{max-width:820px;margin:0 auto;padding:24px;}
+.ag-hero{text-align:center;padding:1.5rem 0 1rem;}
+.ag-hero h2{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:.15em;color:#fff;}
+.ag-hero h2 span{color:var(--red);}
+.ag-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.ag-tab{padding:9px 20px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.04em;}
+.ag-tab:hover{color:var(--t1);}
+.ag-tab.on{color:#fff;border-bottom-color:var(--red);}
+.ag-panel{display:none;}
+.ag-panel.on{display:block;}
+.ag-card{background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px;}
+.ag-lbl{font-size:10px;letter-spacing:.15em;color:var(--t3);margin-bottom:6px;text-transform:uppercase;font-family:'Space Mono',monospace;}
+.ag-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:14px;}
+.ag-inp{width:100%;padding:9px 13px;font-size:13px;background:var(--dark4);border:1px solid var(--border);border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;transition:border-color .2s;outline:none;}
+.ag-inp:focus{border-color:var(--red);}
+textarea.ag-inp{resize:vertical;min-height:80px;line-height:1.6;}
+select.ag-inp{cursor:pointer;}
+.ag-lbl-sm{font-size:11px;color:var(--t3);display:block;margin-bottom:5px;margin-top:10px;}
+.ag-btn{padding:9px 18px;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:transparent;color:#fff;transition:all .15s;}
+.ag-btn:hover{background:var(--dark4);}
+.ag-btn:disabled{opacity:.3;cursor:not-allowed;}
+.ag-btn-red{background:var(--red);border-color:var(--red);}
+.ag-btn-red:hover{background:#c41f14;}
+.ag-btn-sm{padding:5px 12px;font-size:11px;}
+.ag-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.ag-st{font-size:12px;margin-top:8px;min-height:18px;font-family:'Space Mono',monospace;}
+.ag-ok{color:var(--green);} .ag-err{color:var(--red);} .ag-loading{color:var(--amber);}
+.ag-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+.ag-mac{background:var(--dark4);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.ag-mac-v{font-size:20px;font-weight:600;color:#fff;font-family:'Space Mono',monospace;}
+.ag-mac-l{font-size:10px;color:var(--t3);margin-top:3px;text-transform:uppercase;letter-spacing:.07em;}
+.ag-result{background:var(--dark4);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;font-family:'Space Mono',monospace;max-height:260px;overflow-y:auto;margin-top:10px;}
+.ag-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.ag-tag{font-size:10px;padding:3px 10px;border-radius:99px;background:var(--dark4);border:1px solid var(--border);color:var(--t3);}
+.ag-img2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.ag-img-l{font-size:10px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-family:'Space Mono',monospace;}
+.ag-slot img{width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;}
+.ag-upzone{border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:13px;transition:all .2s;}
+.ag-upzone:hover{border-color:var(--red);color:#fff;}
+.ag-hidden{display:none!important;}
+.ag-div{height:1px;background:var(--border);margin:12px 0;}
+.ag-home-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem;}
+.ag-hcard{background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s;}
+.ag-hcard:hover{border-color:var(--red);transform:translateY(-2px);}
+.ag-hcard.off{opacity:.4;cursor:default;}
+.ag-hcard.off:hover{border-color:var(--border);transform:none;}
+.ag-pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.ag-pt{padding:13px;border:1px solid var(--border);border-radius:8px;background:var(--dark4);cursor:pointer;transition:all .15s;}
+.ag-pt:hover,.ag-pt.sel{border-color:var(--red);background:rgba(232,38,26,0.07);}
+.ag-out{background:var(--dark4);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;}
+.ag-out-l{font-size:10px;color:var(--red);letter-spacing:.12em;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:6px;}
+.ag-hash{font-size:12px;color:var(--blue);line-height:1.8;font-family:'Space Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- STARFIELD -->
+<div id="starfield"></div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-bg"></div>
+  <div class="login-box">
+    <div class="login-glow"></div>
+    <div class="login-logo">TFG</div>
+    <div class="login-title">THE <span>FITNESS</span> GARAGE</div>
+    <div class="login-sub">Command Center — Private Access</div>
+    <div class="login-field">
+      <label>Usuario / Username</label>
+      <input type="text" id="lu" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off" />
+    </div>
+    <div class="login-field">
+      <label>Contraseña / Password</label>
+      <input type="password" id="lp" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">ENTER</button>
+    <div class="login-err" id="lerr"></div>
+    <div class="login-footer">THE FITNESS GARAGE © 2026 — All Rights Reserved</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div>
+        <div class="top-logo">TFG</div>
+        <div class="top-sub">Command Center</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="chip" id="userChip">—</div>
+      <button class="tbtn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="toolbar" id="toolbar"></div>
+  <div class="main" id="mainContent"></div>
+</div>
+
+<script>
+// ═══ STARFIELD GENERATOR ═══
+(function(){
+  const sf = document.getElementById('starfield');
+  // Fixed stars
+  for(let i=0;i<200;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const size=Math.random()*2.5+0.5;
+    const op=Math.random()*0.6+0.2;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--min-op:${op*0.3};opacity:${op};--d:${Math.random()*4+2}s;animation-delay:${Math.random()*4}s;`;
+    sf.appendChild(s);
+  }
+  // Meteors
+  for(let i=0;i<12;i++){
+    const m=document.createElement('div');
+    m.className='meteor';
+    const len=Math.random()*200+80;
+    m.style.cssText=`--mt:${Math.random()*60}%;--ml:${Math.random()*40-20}%;--mw:${len}px;--mr:${Math.random()*20-10}deg;--md:${Math.random()*4+3}s;--mdelay:${Math.random()*10}s;`;
+    sf.appendChild(m);
+  }
+})();
+
+// ═══ DATA ═══
+const USERS = [
+  {username:'josue', password:'TFG2026!', role:'owner', name:'Josué Hernandez'},
+  {username:'binaryclouds', password:'dev2026', role:'dev', name:'BinaryClouds'},
+];
+
+const AREAS = [
+  {id:'all', label:'All'},
+  {id:'ios', label:'iOS App', color:'#60A5FA'},
+  {id:'web', label:'Web', color:'#22D3EE'},
+  {id:'marketing', label:'Marketing', color:'#F59E0B'},
+  {id:'infra', label:'Infrastructure', color:'#A78BFA'},
+  {id:'design', label:'Design', color:'#F472B6'},
+];
+
+const TASKS = [
+  {id:1,title:'Google Sign-In native iOS',area:'ios',phase:'phase0',priority:'high',status:'done',start:'2026-03-15',end:'2026-03-25',progress:100,desc:'Native Google Sign-In using GoogleSignIn SDK, JWT compatible with NextAuth.'},
+  {id:2,title:'Weight Progress sync',area:'ios',phase:'phase0',priority:'high',status:'done',start:'2026-03-20',end:'2026-03-28',progress:100,desc:'Weight entries sync between iOS app and web via Express endpoints.'},
+  {id:3,title:'Trainer Notes API endpoint',area:'ios',phase:'phase0',priority:'high',status:'done',start:'2026-03-25',end:'2026-04-01',progress:100,desc:'GET /api/trainer-notes/:uuid endpoint via Express service.'},
+  {id:4,title:'Nutrition Tracker sync',area:'ios',phase:'phase0',priority:'high',status:'progress',start:'2026-04-01',end:'2026-04-10',progress:60,desc:'Daily meals sync via /api/nutrition-intake endpoints.'},
+  {id:5,title:'Progress Tracker full sync',area:'ios',phase:'phase0',priority:'high',status:'progress',start:'2026-04-01',end:'2026-04-12',progress:40,desc:'Progress logs CRUD via /api/progress-logs endpoints.'},
+  {id:6,title:'Stripe payments integration',area:'ios',phase:'phase1',priority:'high',status:'progress',start:'2026-04-05',end:'2026-04-20',progress:30,desc:'Subscription management via Stripe API.'},
+  {id:7,title:'App Store submission',area:'ios',phase:'phase1',priority:'high',status:'pending',start:'2026-04-20',end:'2026-04-30',progress:0,desc:'Prepare and submit to App Store.'},
+  {id:8,title:'Recipe Agent',area:'web',phase:'phase0',priority:'medium',status:'done',start:'2026-03-28',end:'2026-04-01',progress:100,desc:'AI agent to extract, process and upload recipes.'},
+  {id:9,title:'Instagram Agent',area:'web',phase:'phase0',priority:'medium',status:'done',start:'2026-04-01',end:'2026-04-02',progress:100,desc:'AI agent to generate TFG App launch posts.'},
+  {id:10,title:'TFG App launch campaign',area:'marketing',phase:'phase1',priority:'high',status:'pending',start:'2026-04-20',end:'2026-05-10',progress:0,desc:'Instagram, TikTok, email campaign for app launch.'},
+  {id:11,title:'Google Auth endpoint',area:'infra',phase:'phase0',priority:'high',status:'done',start:'2026-03-28',end:'2026-04-01',progress:100,desc:'Express service for native Google Sign-In verification.'},
+  {id:12,title:'Express service hardening',area:'infra',phase:'phase1',priority:'medium',status:'pending',start:'2026-04-10',end:'2026-04-20',progress:0,desc:'Rate limiting, better error handling, logging.'},
+];
+
+const CELL_W = 36;
+let currentUser = null;
+let currentView = 'gantt';
+let activeArea = 'all';
+let agRData = null, agDalleUrl = null, agPostType = 'launch_announcement';
+const OPENAI_KEY = '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';
+
+// ═══ AUTH ═══
+function doLogin(){
+  const u=document.getElementById('lu').value.trim().toLowerCase();
+  const p=document.getElementById('lp').value;
+  const err=document.getElementById('lerr');
+  err.textContent='';
+  if(!u||!p){err.textContent='Enter username and password';return;}
+  const user=USERS.find(x=>x.username===u&&x.password===p);
+  if(!user){err.textContent='Invalid credentials';return;}
+  currentUser=user;
+  document.getElementById('login').style.display='none';
+  const app=document.getElementById('app');
+  app.style.display='grid';
+  app.classList.add('visible');
+  document.getElementById('userChip').textContent=user.name;
+  render();
+}
+
+function doLogout(){
+  currentUser=null;
+  document.getElementById('login').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('lu').value='';
+  document.getElementById('lp').value='';
+}
+
+// ═══ RENDER ═══
+function render(){
+  renderToolbar();
+  if(currentView==='agents'){renderAgents();return;}
+  if(currentView==='gantt'){renderGantt();return;}
+  renderFlow();
+}
+
+function renderToolbar(){
+  const tb=document.getElementById('toolbar');
+  let h='';
+  AREAS.forEach(a=>{
+    if(a.id==='all'){
+      h+=`<button class="area-btn ${activeArea==='all'?'active':''}" onclick="activeArea='all';render()">All</button>`;
+    } else {
+      h+=`<button class="area-btn ${activeArea===a.id?'active':''}" onclick="activeArea='${a.id}';render()"><span class="dot" style="background:${a.color}"></span>${a.label}</button>`;
+    }
+  });
+  h+=`<div class="sep"></div>`;
+  h+=`<button class="view-btn ${currentView==='gantt'?'active':''}" onclick="currentView='gantt';render()">Gantt</button>`;
+  h+=`<button class="view-btn ${currentView==='flow'?'active':''}" onclick="currentView='flow';render()">Flow</button>`;
+  h+=`<button class="view-btn agents-btn ${currentView==='agents'?'active':''}" onclick="currentView='agents';render()">⚡ Agents</button>`;
+  tb.innerHTML=h;
+}
+
+function getFiltered(){
+  return TASKS.filter(t=>activeArea==='all'||t.area===activeArea);
+}
+
+// ═══ GANTT ═══
+function renderGantt(){
+  const tasks=getFiltered();
+  const mc=document.getElementById('mainContent');
+  const today=new Date();
+  const start=new Date('2026-03-10');
+  const end=new Date('2026-05-31');
+  const days=Math.ceil((end-start)/(1000*60*60*24));
+
+  const COLORS={'ios':'#60A5FA','web':'#22D3EE','marketing':'#F59E0B','infra':'#A78BFA','design':'#F472B6'};
+  const STATUS_OP={'done':0.55,'progress':1,'pending':0.7,'blocked':0.4};
+
+  let sideH='';
+  let chartRows='';
+  let headerH='';
+
+  // Header
+  for(let d=0;d<days;d++){
+    const dt=new Date(start);dt.setDate(dt.getDate()+d);
+    const isToday=dt.toDateString()===today.toDateString();
+    const isWeekend=dt.getDay()===0||dt.getDay()===6;
+    const mo=['Jan','Feb','Mar','Apr','May','Jun'][dt.getMonth()];
+    headerH+=`<div class="g-hcell ${isToday?'today':''} ${isWeekend?'weekend':''}" style="min-width:${CELL_W}px"><span style="font-size:8px">${mo}</span><span class="day">${dt.getDate()}</span></div>`;
+  }
+
+  // Rows
+  tasks.forEach(t=>{
+    const ts=new Date(t.start), te=new Date(t.end);
+    const ds=Math.ceil((ts-start)/(1000*60*60*24));
+    const dw=Math.max(1,Math.ceil((te-ts)/(1000*60*60*24)));
+    const color=COLORS[t.area]||'#888';
+    const op=STATUS_OP[t.status]||0.7;
+
+    sideH+=`<div class="g-row"><span class="gid">${t.id}</span><span class="gname">${t.title}</span><span class="gdates">${t.start.slice(5)}</span><span class="gdates">${t.end.slice(5)}</span></div>`;
+
+    let cells='';
+    for(let d=0;d<days;d++){
+      const dt=new Date(start);dt.setDate(dt.getDate()+d);
+      const isToday=dt.toDateString()===today.toDateString();
+      const isWeekend=dt.getDay()===0||dt.getDay()===6;
+      cells+=`<div class="g-cell ${isToday?'today':''} ${isWeekend?'weekend':''}" style="min-width:${CELL_W}px"></div>`;
+    }
+
+    const todayOff=Math.ceil((today-start)/(1000*60*60*24));
+    chartRows+=`<div class="g-crow" style="position:relative;">
+      ${cells}
+      <div class="g-bar" style="left:${ds*CELL_W+2}px;width:${dw*CELL_W-4}px;background:${color};opacity:${op};" title="${t.title}">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${t.progress}%;background:rgba(255,255,255,0.15);border-radius:5px;"></div>
+        ${dw>3?`<span style="position:relative;z-index:1;padding:0 4px;font-size:9px;overflow:hidden;white-space:nowrap">${t.progress}%</span>`:''}
+      </div>
+    </div>`;
+  });
+
+  const todayOff=Math.ceil((today-start)/(1000*60*60*24));
+
+  mc.innerHTML=`<div class="gantt-wrap">
+    <div class="g-sidebar">
+      <div class="g-sh"><span>#</span><span>Task</span><span style="text-align:center">Start</span><span style="text-align:center">End</span></div>
+      ${sideH}
+    </div>
+    <div class="g-chart">
+      <div class="g-ch">${headerH}</div>
+      <div style="position:relative">${chartRows}<div class="today-line" style="left:${todayOff*CELL_W}px"></div></div>
+    </div>
+  </div>`;
+
+  // Scroll to today
+  setTimeout(()=>{
+    const tl=mc.querySelector('.today-line');
+    if(tl)tl.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  },100);
+}
+
+// ═══ FLOW ═══
+function renderFlow(){
+  const tasks=getFiltered();
+  const mc=document.getElementById('mainContent');
+  const groups={done:[],progress:[],pending:[],blocked:[]};
+  tasks.forEach(t=>{ if(groups[t.status]) groups[t.status].push(t); });
+  const labels={done:'✅ Done',progress:'🔵 In Progress',pending:'⏳ Pending',blocked:'🔴 Blocked'};
+  const COLORS={'ios':'#60A5FA','web':'#22D3EE','marketing':'#F59E0B','infra':'#A78BFA','design':'#F472B6'};
+
+  let h='<div class="flow-wrap">';
+  ['progress','pending','done','blocked'].forEach(s=>{
+    if(!groups[s].length)return;
+    h+=`<div class="flow-group"><div class="flow-group-title"><span>${labels[s]}</span><span style="font-size:10px;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:99px;">${groups[s].length}</span></div><div class="flow-cards">`;
+    groups[s].forEach(t=>{
+      const c=COLORS[t.area]||'#888';
+      h+=`<div class="flow-card" style="border-left:3px solid ${c}">
+        <div class="flow-card-title">${t.title}</div>
+        <div class="flow-card-desc">${t.desc}</div>
+        <div class="flow-card-meta">
+          <span class="badge badge-${t.status}">${t.status}</span>
+          <span class="badge badge-${t.priority}">${t.priority}</span>
+          <span class="badge" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);">${t.progress}%</span>
+        </div>
+      </div>`;
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  mc.innerHTML=h;
+}
+
+// ═══ AGENTS ═══
+function renderAgents(){
+  const mc=document.getElementById('mainContent');
+  mc.innerHTML=`<div class="agents-wrap">
+  <div class="ag-hero"><h2>⚡ <span>AGENTS</span></h2><p style="color:var(--t3);font-size:13px;margin-top:4px;">TFG Private AI Command Center</p></div>
+  <div class="ag-tabs">
+    <div class="ag-tab on" onclick="agTab('home')">🏠 Home</div>
+    <div class="ag-tab" onclick="agTab('recipes')">🍽️ Recipe Agent</div>
+    <div class="ag-tab" onclick="agTab('instagram')">📱 Instagram Agent</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="ag-panel on" id="agp-home">
+    <div class="ag-home-grid">
+      <div class="ag-hcard" onclick="agTab('recipes')">
+        <div style="font-size:24px;margin-bottom:8px">🍽️</div>
+        <div style="font-size:13px;font-weight:600;color:#fff">Recipe Agent</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Link → receta → porciones → DALL-E → subir a la web</div>
+      </div>
+      <div class="ag-hcard" onclick="agTab('instagram')">
+        <div style="font-size:24px;margin-bottom:8px">📱</div>
+        <div style="font-size:13px;font-weight:600;color:#fff">Instagram Agent</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Posts de lanzamiento TFG App — caption, hashtags, CTA</div>
+      </div>
+      <div class="ag-hcard off">
+        <div style="font-size:24px;margin-bottom:8px">📊</div>
+        <div style="font-size:13px;font-weight:600;color:#fff">Analytics <span style="font-size:10px;background:#222;color:var(--t3);padding:2px 8px;border-radius:99px;margin-left:4px">soon</span></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Weekly metrics, member growth</div>
+      </div>
+      <div class="ag-hcard off">
+        <div style="font-size:24px;margin-bottom:8px">✉️</div>
+        <div style="font-size:13px;font-weight:600;color:#fff">Client Notes <span style="font-size:10px;background:#222;color:var(--t3);padding:2px 8px;border-radius:99px;margin-left:4px">soon</span></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Notas personalizadas rápido</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIPE -->
+  <div class="ag-panel" id="agp-recipes">
+    <div class="ag-card">
+      <div class="ag-lbl">Step 01 — Link + Foto + Instrucciones</div>
+      <div class="ag-title">Configura tu receta</div>
+
+      <span class="ag-lbl-sm">Link de la receta</span>
+      <input class="ag-inp" type="text" id="ag-url" placeholder="https://... (web, Instagram, TikTok, YouTube)" />
+
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;">
+        <div><span class="ag-lbl-sm">Porciones</span><input class="ag-inp" type="number" id="ag-srv" value="1" min="1" max="4" style="width:70px;" /></div>
+        <div style="flex:1;"><span class="ag-lbl-sm">Categoría</span>
+          <select class="ag-inp" id="ag-cat"><option>Salad</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option><option>Dessert</option></select>
+        </div>
+      </div>
+
+      <div class="ag-div" style="margin-top:14px;"></div>
+
+      <span class="ag-lbl-sm">Foto del platillo</span>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+        <div id="ag-photo-thumb" style="width:80px;height:80px;border-radius:10px;border:1px dashed rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;overflow:hidden;transition:border-color .2s;" onclick="document.getElementById('ag-fi-early').click()">
+          <img id="ag-thumb-img" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:10px;" />
+          <span id="ag-thumb-icon" style="font-size:24px;">📷</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--t2);font-weight:500;">Foto del platillo original</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px;line-height:1.4;">DALL-E la perfeccionará según tus instrucciones</div>
+          <button class="ag-btn ag-btn-sm" style="margin-top:6px;" onclick="document.getElementById('ag-fi-early').click()">Subir foto</button>
+        </div>
+      </div>
+      <input type="file" id="ag-fi-early" accept="image/*" style="display:none;" onchange="agEarlyPhoto(event)" />
+
+      <div class="ag-div" style="margin-top:14px;"></div>
+
+      <span class="ag-lbl-sm">Instrucciones para el agente</span>
+      <div style="position:relative;margin-top:6px;">
+        <textarea class="ag-inp" id="ag-instructions" placeholder="Ej: Hazla para 2 porciones, quita el gluten, la foto con fondo oscuro y cubiertos dorados, agrega más proteína..." style="min-height:90px;padding-right:52px;"></textarea>
+        <button id="ag-mic-btn" onclick="agToggleMic()" title="Dictar instrucciones" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;color:#fff;">🎤</button>
+      </div>
+      <div class="ag-st" id="ag-mic-st" style="font-size:11px;"></div>
+
+      <div class="ag-row" style="margin-top:14px;">
+        <button class="ag-btn ag-btn-red" id="ag-fbtn" onclick="agFetch()">Analizar y Procesar →</button>
+      </div>
+      <div class="ag-st" id="ag-fs"></div>
+    </div>
+    <div class="ag-card ag-hidden" id="ag-r2">
+      <div class="ag-lbl">Step 02 — Receta Extraída</div>
+      <div class="ag-title" id="ag-rname"></div>
+      <div class="ag-macros" id="ag-macros"></div>
+      <div class="ag-tags" id="ag-tags"></div>
+      <div class="ag-result" id="ag-rtext"></div>
+    </div>
+    <div class="ag-card ag-hidden" id="ag-r3">
+      <div class="ag-lbl">Step 03 — Generando Foto</div>
+      <div class="ag-title">DALL-E creando tu imagen</div>
+      <div class="ag-img2">
+        <div class="ag-slot"><div class="ag-img-l">Tu foto original</div>
+          <img id="ag-fp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
+          <div id="ag-upzone" style="border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px;">Sin foto</div>
+        </div>
+        <div class="ag-slot"><div class="ag-img-l">Versión DALL-E</div>
+          <div id="ag-dh" style="border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:13px;display:none;">Generando...</div>
+          <img id="ag-dp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
+        </div>
+      </div>
+      <div class="ag-row">
+        <button class="ag-btn ag-btn-sm ag-hidden" id="ag-rb" onclick="agGenImg()">Regenerar foto</button>
+      </div>
+      <div class="ag-st" id="ag-ps"></div>
+    </div>
+    <div class="ag-card ag-hidden" id="ag-r4">
+      <div class="ag-lbl">Step 04 — Aprobar y Subir</div>
+      <div class="ag-title">¿Todo se ve bien?</div>
+      <div style="font-size:13px;color:var(--t3);line-height:1.8;" id="ag-sum"></div>
+      <div class="ag-row" style="margin-top:14px;">
+        <button class="ag-btn ag-btn-red" onclick="agApprove()">Aprobar y Subir a la Web →</button>
+        <button class="ag-btn ag-btn-sm" onclick="agReset()">Empezar de Nuevo</button>
+      </div>
+      <div class="ag-st" id="ag-as"></div>
+    </div>
+  </div>
+
+  <!-- INSTAGRAM -->
+  <div class="ag-panel" id="agp-instagram">
+    <div class="ag-card">
+      <div class="ag-lbl">Step 01 — Tipo de Post</div>
+      <div class="ag-title">TFG App Launch Post</div>
+      <div class="ag-pt-grid">
+        <div class="ag-pt sel" onclick="agSelPT(this,'launch_announcement')"><div style="font-size:18px;margin-bottom:4px">🚀</div><div style="font-size:12px;font-weight:600;color:#fff">App Launch</div><div style="font-size:11px;color:var(--t3)">Big reveal post</div></div>
+        <div class="ag-pt" onclick="agSelPT(this,'feature_highlight')"><div style="font-size:18px;margin-bottom:4px">✨</div><div style="font-size:12px;font-weight:600;color:#fff">Feature Highlight</div><div style="font-size:11px;color:var(--t3)">Showcase a feature</div></div>
+        <div class="ag-pt" onclick="agSelPT(this,'download_cta')"><div style="font-size:18px;margin-bottom:4px">📲</div><div style="font-size:12px;font-weight:600;color:#fff">Download CTA</div><div style="font-size:11px;color:var(--t3)">Drive installs</div></div>
+        <div class="ag-pt" onclick="agSelPT(this,'behind_scenes')"><div style="font-size:18px;margin-bottom:4px">🎬</div><div style="font-size:12px;font-weight:600;color:#fff">Behind the Scenes</div><div style="font-size:11px;color:var(--t3)">Story of the app</div></div>
+      </div>
+      <div id="ag-fiv" class="ag-hidden"><span class="ag-lbl-sm">¿Qué feature destacar?</span><input class="ag-inp" type="text" id="ag-fn" placeholder="e.g. AI Nutrition Tracking..." /></div>
+      <div class="ag-div"></div>
+      <span class="ag-lbl-sm">Contexto extra (opcional)</span>
+      <textarea class="ag-inp" id="ag-ec" placeholder="e.g. Available on iOS. Members get early access..."></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        <div><span class="ag-lbl-sm">Tono</span>
+          <select class="ag-inp" id="ag-tone"><option value="hype">Hype & Energetic</option><option value="premium">Premium & Confident</option><option value="community">Community & Warm</option><option value="direct">Direct & Bold</option></select>
+        </div>
+        <div><span class="ag-lbl-sm">Emojis</span>
+          <select class="ag-inp" id="ag-emo"><option value="minimal">Minimal (1-2)</option><option value="moderate" selected>Moderate (3-5)</option><option value="heavy">Heavy (6+)</option></select>
+        </div>
+      </div>
+      <div class="ag-row"><button class="ag-btn ag-btn-red" id="ag-igb" onclick="agGenPost()">Generar Post →</button></div>
+      <div class="ag-st" id="ag-igs"></div>
+    </div>
+    <div class="ag-card ag-hidden" id="ag-ig2">
+      <div class="ag-lbl">Post Generado</div>
+      <div class="ag-out">
+        <div style="margin-bottom:12px"><div class="ag-out-l">Caption</div><div style="font-size:13px;line-height:1.7;color:#ddd" id="ag-igc"></div></div>
+        <div class="ag-div"></div>
+        <div style="margin-bottom:12px"><div class="ag-out-l">Hashtags</div><div class="ag-hash" id="ag-igh"></div></div>
+        <div class="ag-div"></div>
+        <div><div class="ag-out-l">CTA</div><div style="font-size:13px;line-height:1.7;color:#ddd" id="ag-igct"></div></div>
+      </div>
+      <div class="ag-row">
+        <button class="ag-btn ag-btn-red" id="ag-cp" onclick="agCopy()">Copiar Post Completo</button>
+        <button class="ag-btn ag-btn-sm" onclick="agGenPost()">Regenerar</button>
+      </div>
+    </div>
+  </div>
+  </div>`;
+}
+
+function agTab(t){
+  document.querySelectorAll('.ag-tab').forEach((el,i)=>el.classList.toggle('on',['home','recipes','instagram'][i]===t));
+  document.querySelectorAll('.ag-panel').forEach(p=>{p.classList.remove('on');});
+  const p=document.getElementById('agp-'+t);if(p)p.classList.add('on');
+}
+function agSt(id,msg,cls){const e=document.getElementById(id);if(!e)return;e.textContent=msg;e.className='ag-st'+(cls?' '+cls:'');}
+function agShow(id){const e=document.getElementById(id);if(e)e.classList.remove('ag-hidden');}
+function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag-hidden');}
+function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
+function agDP(r){return `Professional food photography fitness nutrition catalog, ${r.name}. ${r.image_description}. Overhead or 45-degree angle, clean white ceramic bowl centered, soft natural studio lighting, light marble background, vibrant food colors, fresh herb garnish, gold cutlery, no text, no watermarks, ultra sharp 4K.`;}
+
+// Early photo handler
+function agEarlyPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const thumbImg=document.getElementById('ag-thumb-img');
+    const thumbIcon=document.getElementById('ag-thumb-icon');
+    thumbImg.src=ev.target.result;
+    thumbImg.style.display='block';
+    thumbIcon.style.display='none';
+    agEarlyPhotoData=ev.target.result;
+  };reader.readAsDataURL(file);
+}
+let agEarlyPhotoData=null;
+let agMicActive=false;
+let agRecognition=null;
+
+function agToggleMic(){
+  const btn=document.getElementById('ag-mic-btn');
+  const st=document.getElementById('ag-mic-st');
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    agSt('ag-mic-st','Tu browser no soporta micrófono','ag-err');return;
+  }
+  if(agMicActive){
+    if(agRecognition)agRecognition.stop();
+    agMicActive=false;
+    btn.style.background='rgba(255,255,255,0.05)';
+    btn.style.borderColor='rgba(255,255,255,0.15)';
+    btn.textContent='🎤';
+    agSt('ag-mic-st','','');
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  agRecognition=new SR();
+  agRecognition.lang='es-MX';
+  agRecognition.continuous=true;
+  agRecognition.interimResults=true;
+  agRecognition.onstart=()=>{
+    agMicActive=true;
+    btn.style.background='rgba(232,38,26,0.3)';
+    btn.style.borderColor='var(--red)';
+    btn.textContent='⏹';
+    agSt('ag-mic-st','🔴 Escuchando... habla ahora','ag-loading');
+  };
+  agRecognition.onresult=(e)=>{
+    let final='',interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    const ta=document.getElementById('ag-instructions');
+    if(final)ta.value=(ta.value+' '+final).trim();
+    agSt('ag-mic-st',interim?`💬 "${interim}"...`:'🔴 Escuchando...','ag-loading');
+  };
+  agRecognition.onerror=(e)=>{
+    if(e.error==='aborted')return;
+    agSt('ag-mic-st','Error: '+e.error,'ag-err');
+    agMicActive=false;
+    btn.style.background='rgba(255,255,255,0.05)';
+    btn.textContent='🎤';
+  };
+  agRecognition.onend=()=>{
+    if(agMicActive){agRecognition.start();}
+  };
+  agRecognition.start();
+}
+
+async function agFetch(){
+  const url=document.getElementById('ag-url').value.trim();
+  const srv=parseInt(document.getElementById('ag-srv').value)||1;
+  const cat=document.getElementById('ag-cat').value;
+  const instructions=document.getElementById('ag-instructions').value.trim();
+  if(!url)return;
+  // Stop mic if active
+  if(agMicActive&&agRecognition){agRecognition.stop();agMicActive=false;}
+  document.getElementById('ag-fbtn').disabled=true;
+  agSt('ag-fs','Analizando receta y aplicando instrucciones...','ag-loading');
+  try{
+    const instrNote=instructions?`\n\nUSER INSTRUCTIONS (apply these changes to the recipe and photo): "${instructions}"\nFor photo: extract image style preferences from the instructions and use them in image_description.`:'';
+    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Extract recipe from: ${url}\nApply servings: ${srv}, category: ${cat}.${instrNote}\nReturn ONLY valid JSON (no markdown):\n{"name":"english name","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"name","items":["item adjusted for ${srv} serving(s) and instructions"]}],"instructions":[{"section":"name","steps":["step"]}],"notes":["note"],"image_description":"detailed DALL-E prompt incorporating user photo style instructions: lighting, background, props, angle, colors, mood"}`}]})});
+    const data=await resp.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No se pudo extraer la receta.');
+    agRData=JSON.parse(m[0]);agShowR(agRData);
+    agSt('ag-fs','✓ Receta extraída — generando imagen...','ag-ok');
+    // Show step 03 and auto-generate image
+    agShow('ag-r3');
+    // Transfer early photo if exists
+    if(agEarlyPhotoData){
+      const fp=document.getElementById('ag-fp');
+      fp.src=agEarlyPhotoData;fp.style.display='block';
+      document.getElementById('ag-upzone').style.display='none';
+    }
+    agGenImg();
+  }catch(e){agSt('ag-fs',e.message,'ag-err');}
+  document.getElementById('ag-fbtn').disabled=false;
+}
+
+function agShowR(r){
+  document.getElementById('ag-rname').textContent=r.name;
+  document.getElementById('ag-macros').innerHTML=['calories','protein','fat','carbs'].map((k,i)=>`<div class="ag-mac"><div class="ag-mac-v">${Math.round(r[k])}${i>0?'g':''}</div><div class="ag-mac-l">${['Cal','Protein','Fat','Carbs'][i]}</div></div>`).join('');
+  document.getElementById('ag-tags').innerHTML=`<span class="ag-tag">${r.category}</span><span class="ag-tag">${r.prep_time}min</span><span class="ag-tag">${r.servings} serving(s)</span>`;
+  let txt='';
+  r.ingredients.forEach(s=>{txt+=`INGREDIENTES — ${s.section.toUpperCase()}\n`;s.items.forEach(i=>txt+=`• ${i}\n`);txt+='\n';});
+  r.instructions.forEach(s=>{txt+=`PREPARACIÓN — ${s.section.toUpperCase()}\n`;s.steps.forEach((st,i)=>txt+=`${i+1}. ${st}\n`);txt+='\n';});
+  if(r.notes&&r.notes.length){txt+='NOTAS\n';r.notes.forEach(n=>txt+=`• ${n}\n`);}
+  document.getElementById('ag-rtext').textContent=txt.trim();
+  agShow('ag-r2');
+}
+
+function agPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    document.getElementById('ag-fp').src=ev.target.result;
+    document.getElementById('ag-fp').style.display='block';
+    document.getElementById('ag-upzone').style.display='none';
+    agShow('ag-gb');agSt('ag-ps','Foto lista. Haz clic en Generar con DALL-E.','ag-ok');
+  };reader.readAsDataURL(file);
+}
+
+async function agGenImg(){
+  if(!agRData)return;
+  const dhbtn=document.getElementById('ag-gb');if(dhbtn)dhbtn.disabled=true;
+  const dh=document.getElementById('ag-dh');if(dh){dh.style.display='flex';dh.textContent='Generando...';}
+  document.getElementById('ag-dp').style.display='none';
+  agSt('ag-ps','Generando imagen con DALL-E 3...','ag-loading');
+  try{
+    const resp=await fetch('https://api.openai.com/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${OPENAI_KEY}`},body:JSON.stringify({model:'dall-e-3',prompt:agDP(agRData),n:1,size:'1024x1024',quality:'hd'})});
+    const data=await resp.json();if(data.error)throw new Error(data.error.message);
+    agDalleUrl=data.data[0].url;if(dh)dh.style.display='none';
+    const img=document.getElementById('ag-dp');if(img){img.src=agDalleUrl;img.style.display='block';}
+    agShow('ag-rb');agSt('ag-ps','✓ Imagen generada.','ag-ok');agShowApprove();
+  }catch(e){agSt('ag-ps',e.message,'ag-err');}
+  const dhbtn2=document.getElementById('ag-gb');if(dhbtn2)dhbtn2.disabled=false;
+}
+
+function agShowApprove(){
+  if(!agRData)return;
+  document.getElementById('ag-sum').innerHTML=`<strong style="color:#fff">${agRData.name}</strong><br>${Math.round(agRData.calories)} kcal · ${Math.round(agRData.protein)}g protein · ${Math.round(agRData.fat)}g fat · ${Math.round(agRData.carbs)}g carbs<br><span style="color:var(--t3)">${agRData.category} · ${agRData.prep_time}min</span>${agDalleUrl?'<br><span style="color:var(--green)">✓ Imagen DALL-E lista</span>':''}`;
+  agShow('ag-r4');
+}
+
+function agApprove(){
+  if(!agRData)return;
+  const r=agRData;
+  const ingr=r.ingredients.map(s=>s.section+':\n'+s.items.map(i=>'• '+i).join('\n')).join('\n\n');
+  const inst=r.instructions.map(s=>s.section+':\n'+s.steps.map((st,i)=>(i+1)+'. '+st).join('\n')).join('\n\n');
+  alert(`Ve a: the-fitness-garage.com/admin/nutrition/add\n\nNOMBRE: ${r.name}\nCALORÍAS: ${Math.round(r.calories)}\nPROTEÍNA: ${Math.round(r.protein)}g\nGRASA: ${Math.round(r.fat)}g\nCARBOS: ${Math.round(r.carbs)}g\nTIEMPO: ${r.prep_time}min\nCATEGORÍA: ${r.category}\n\n${ingr}\n\n${inst}\n\nIMAGEN:\n${agDalleUrl||'Subir manualmente'}`);
+  agSt('ag-as','✓ Datos listos — ve a llenar el formulario!','ag-ok');
+}
+
+function agReset(){
+  agRData=null;agDalleUrl=null;agEarlyPhotoData=null;
+  ['ag-r2','ag-r3','ag-r4','ag-rb'].forEach(agHide);
+  document.getElementById('ag-url').value='';
+  const fp2=document.getElementById('ag-fp');if(fp2)fp2.style.display='none';
+  const uz=document.getElementById('ag-upzone');if(uz)uz.style.display='flex';
+  const dp2=document.getElementById('ag-dp');if(dp2)dp2.style.display='none';
+  const ti=document.getElementById('ag-thumb-img');if(ti){ti.style.display='none';ti.src='';}
+  const ticon=document.getElementById('ag-thumb-icon');if(ticon)ticon.style.display='';
+  const inst=document.getElementById('ag-instructions');if(inst)inst.value='';
+  ['ag-fs','ag-ps','ag-as'].forEach(id=>agSt(id,'',''));
+}
+
+async function agGenPost(){
+  const btn=document.getElementById('ag-igb');btn.disabled=true;
+  agSt('ag-igs','Escribiendo post...','ag-loading');
+  const tone=document.getElementById('ag-tone').value;
+  const emoji=document.getElementById('ag-emo').value;
+  const extra=document.getElementById('ag-ec').value;
+  const feat=document.getElementById('ag-fn')?document.getElementById('ag-fn').value:'';
+  const tM={hype:'hype energetic exciting',premium:'premium confident aspirational',community:'warm community-driven',direct:'direct bold'};
+  const eM={minimal:'1-2 emojis',moderate:'3-5 emojis',heavy:'6+ emojis'};
+  const tpM={launch_announcement:'Big app launch — TFG App is live.',feature_highlight:`Highlight: "${feat||'AI Nutrition Tracking'}"`,download_cta:'Drive downloads with urgency.',behind_scenes:'Human story building TFG app.'};
+  try{
+    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:`Write Instagram post for The Fitness Garage TFG App launch.\nType: ${tpM[agPostType]}\nTone: ${tM[tone]}\nEmojis: ${eM[emoji]}\nContext: ${extra||'TFG App iOS. Features: booking, nutrition tracking, progress tracker, AI coach.'}\nReturn ONLY JSON (no markdown): {"caption":"2-5 punchy lines no hashtags","hashtags":"15 hashtags starting with #TFGApp #TheFitnessGarage","cta":"one strong call to action"}`}]})});
+    const data=await resp.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('Error al generar.');
+    const post=JSON.parse(m[0]);
+    document.getElementById('ag-igc').textContent=post.caption;
+    document.getElementById('ag-igh').textContent=post.hashtags;
+    document.getElementById('ag-igct').textContent=post.cta;
+    agShow('ag-ig2');agSt('ag-igs','✓ Post generado','ag-ok');
+  }catch(e){agSt('ag-igs',e.message,'ag-err');}
+  btn.disabled=false;
+}
+
+function agCopy(){
+  const cap=document.getElementById('ag-igc').textContent;
+  const hash=document.getElementById('ag-igh').textContent;
+  const cta=document.getElementById('ag-igct').textContent;
+  navigator.clipboard.writeText(`${cap}\n\n${cta}\n\n${hash}`);
+  const btn=document.getElementById('ag-cp');
+  btn.textContent='✓ Copiado!';
+  setTimeout(()=>btn.textContent='Copiar Post Completo',2000);
+}
+</script>
+</body>
+</html>
