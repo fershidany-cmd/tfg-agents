@@ -706,26 +706,21 @@ function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag
 function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
 function agDP(r){
   const desc=r.image_description||'';
-  return `Photo-edit and retouch this real dish for a professional fitness nutrition recipe book. The dish is: ${r.name}.
+  // Build a dynamic prompt based on what corrections were made
+  // The style references the user's existing TFG recipe catalog
+  return `I am creating the recipe: ${r.name} for my professional fitness nutrition recipe book (The Fitness Garage).
 
-IMPORTANT — This is NOT about creating food from scratch. Imagine you have the original photo of this real home-cooked meal and you are using Photoshop to professionally retouch it:
+KEEP THE SAME STYLE as my existing recipe photos — do NOT invent a new image from scratch. The food in this photo IS the real dish. Keep the food exactly as it looks — same textures, same cooking style, same imperfections.
 
-THE FOOD: Keep the exact same food, exact same ingredients, exact same textures, exact same cooking style. The food looks real because it IS real — natural browning, real grease, imperfect cuts, visible seasoning. ${desc}
+${desc ? `Changes to apply: ${desc}` : 'No changes to the food itself.'}
 
-WHAT TO IMPROVE (like a photo editor):
-- Swap the plate/surface: use a clean white ceramic plate, a rustic wooden cutting board, or a simple bowl — whatever fits the dish
-- Fix the lighting: soft natural window light from one side, subtle shadows, no harsh flash
-- Improve the angle: overhead flat-lay or 45-degree, whichever shows the dish better
-- Clean the background: granite countertop, marble surface, or wooden table with a linen napkin or fork casually placed nearby
-- Color-correct: natural true-to-life colors, slightly warm tone, NOT oversaturated
-
-CRITICAL RULES:
-- The food must look REAL and HOME-COOKED, not like a 3D render or AI illustration
-- Keep natural imperfections in the food: uneven browning, slight char marks, drips, messy edges
-- NO perfect symmetry in food arrangement
-- NO impossible studio lighting from multiple angles
+STYLING RULES (like a professional food photographer retouching for a recipe book):
+- Keep the food REAL — natural browning, real grease, imperfect cuts, visible seasoning
+- You may improve: plate/surface, lighting (soft natural window light), angle (overhead or 45°), background (clean countertop, wooden board, linen napkin, fork)
+- Colors: natural true-to-life, slightly warm tone, NOT oversaturated
+- The final photo must look like it was taken by a professional food blogger with a DSLR
 - NO text, watermarks, or logos
-- The final image should be indistinguishable from a real DSLR photograph taken by a food blogger`;
+- NO 3D renders, NO AI-looking perfection, NO symmetrical food arrangement`;
 }
 
 // Load categories dynamically on recipe tab activation
@@ -1002,16 +997,29 @@ function agPhoto(e){
 async function agGenImg(){
   if(!agRData)return;
   const dhbtn=document.getElementById('ag-gb');if(dhbtn)dhbtn.disabled=true;
-  const dh=document.getElementById('ag-dh');if(dh){dh.style.display='flex';dh.textContent='Generando...';}
+  const dh=document.getElementById('ag-dh');if(dh){dh.style.display='flex';dh.textContent='Generando con IA...';}
   document.getElementById('ag-dp').style.display='none';
   agHide('ag-img-actions');
-  agSt('ag-ps','Generando imagen con DALL-E 3 (server-side)...','ag-loading');
+  const hasPhoto=!!agEarlyPhotoData;
+  agSt('ag-ps',hasPhoto?'Editando foto con gpt-image-1 (mantiene tu comida real)...':'Generando imagen con DALL-E 3...','ag-loading');
   try{
     // Use editable prompt from textarea
     const prompt=document.getElementById('ag-dalle-prompt').value.trim()||agDP(agRData);
-    const resp=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
+    // Build request body — include original photo if available
+    const body={prompt:prompt};
+    if(agEarlyPhotoData){
+      body.image=agEarlyPhotoData; // base64 data URL from uploaded photo
+      body.quality='high';
+    }
+    const resp=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();if(data.error)throw new Error(data.error);
-    agDalleUrl=data.url;if(dh)dh.style.display='none';
+    // Handle response — gpt-image-1 returns b64_json, DALL-E 3 returns url
+    if(data.b64_json){
+      agDalleUrl='data:image/png;base64,'+data.b64_json;
+    } else {
+      agDalleUrl=data.url;
+    }
+    if(dh)dh.style.display='none';
     const img=document.getElementById('ag-dp');if(img){img.src=agDalleUrl;img.style.display='block';}
     agShow('ag-img-actions');
     agSt('ag-ps','✓ Imagen generada. Usa, regenera, o edita el prompt.','ag-ok');
