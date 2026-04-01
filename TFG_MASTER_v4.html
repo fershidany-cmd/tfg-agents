@@ -851,6 +851,9 @@ async function agDictateCorrection(){
   try{
     const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:`Here is a recipe in JSON:\n${JSON.stringify(agRData)}\n\nApply this correction: "${correction}"\n\nReturn the COMPLETE updated recipe as valid JSON only (no markdown, no explanation). Keep the same structure. If the correction mentions image/photo changes, update the image_description field.`}]})});
     const data=await resp.json();
+    console.log('Dictate API response:',JSON.stringify(data).substring(0,500));
+    if(data.error)throw new Error(data.error.message||data.error);
+    if(!data.content||!Array.isArray(data.content))throw new Error('API returned unexpected format: '+JSON.stringify(data).substring(0,200));
     const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
     const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No JSON in response');
     agRData=JSON.parse(m[0]);
