@@ -706,21 +706,20 @@ function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag
 function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
 function agDP(r){
   const desc=r.image_description||'';
-  // Build a dynamic prompt based on what corrections were made
-  // The style references the user's existing TFG recipe catalog
-  return `I am creating the recipe: ${r.name} for my professional fitness nutrition recipe book (The Fitness Garage).
+  // Build ingredients change description from recipe data
+  let changes='';
+  if(desc) changes=desc;
 
-KEEP THE SAME STYLE as my existing recipe photos — do NOT invent a new image from scratch. The food in this photo IS the real dish. Keep the food exactly as it looks — same textures, same cooking style, same imperfections.
+  // Natural prompt style — like the user writes to ChatGPT
+  return `I am creating the recipe "${r.name}" for my professional fitness nutrition recipe book. If you see other reference photos, those are from my existing recipe catalog — observe their style and match it.
 
-${desc ? `Changes to apply: ${desc}` : 'No changes to the food itself.'}
+This photo is the ORIGINAL dish. Do NOT create a new image from scratch. Keep the same food, same textures, same cooking style. The food is real and must stay looking real.
 
-STYLING RULES (like a professional food photographer retouching for a recipe book):
-- Keep the food REAL — natural browning, real grease, imperfect cuts, visible seasoning
-- You may improve: plate/surface, lighting (soft natural window light), angle (overhead or 45°), background (clean countertop, wooden board, linen napkin, fork)
-- Colors: natural true-to-life, slightly warm tone, NOT oversaturated
-- The final photo must look like it was taken by a professional food blogger with a DSLR
-- NO text, watermarks, or logos
-- NO 3D renders, NO AI-looking perfection, NO symmetrical food arrangement`;
+${changes ? `CHANGES I made to the recipe: ${changes}. Apply these changes to the photo — if I added an ingredient, add it visually. If I duplicated something (like eggs), duplicate it in the photo. Keep everything else the same.` : 'No changes to the food — just improve the photo quality for my recipe book.'}
+
+You can improve: the plate or surface, add objects around (napkin, fork, herbs, small bowls), adjust the angle and lighting. But the food itself must stay as real and natural as possible — like a photo taken for a professional recipe book, not AI-generated.
+
+No text, no watermarks, no logos.`;
 }
 
 // Load categories dynamically on recipe tab activation
@@ -1001,19 +1000,27 @@ async function agGenImg(){
   document.getElementById('ag-dp').style.display='none';
   agHide('ag-img-actions');
   const hasPhoto=!!agEarlyPhotoData;
-  agSt('ag-ps',hasPhoto?'Editando foto con gpt-image-1 (mantiene tu comida real)...':'Generando imagen con DALL-E 3...','ag-loading');
+  agSt('ag-ps',hasPhoto?'Cargando referencias del catálogo + editando foto...':'Generando imagen con DALL-E 3...','ag-loading');
   try{
-    // Use editable prompt from textarea
     const prompt=document.getElementById('ag-dalle-prompt').value.trim()||agDP(agRData);
-    // Build request body — include original photo if available
     const body={prompt:prompt};
     if(agEarlyPhotoData){
-      body.image=agEarlyPhotoData; // base64 data URL from uploaded photo
+      body.image=agEarlyPhotoData;
       body.quality='high';
+      // Fetch 4 catalog reference images for style matching
+      try{
+        agSt('ag-ps','Obteniendo fotos de referencia del catálogo TFG...','ag-loading');
+        const catResp=await fetch('/api/catalog-images');
+        const catData=await catResp.json();
+        if(catData.images&&catData.images.length>0){
+          body.referenceImages=catData.images;
+          console.log('Loaded',catData.images.length,'catalog reference images');
+          agSt('ag-ps',`Generando con ${catData.images.length} fotos de referencia + tu foto original...`,'ag-loading');
+        }
+      }catch(catErr){console.log('Could not load catalog refs:',catErr.message);}
     }
     const resp=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();if(data.error)throw new Error(data.error);
-    // Handle response — gpt-image-1 returns b64_json, DALL-E 3 returns url
     if(data.b64_json){
       agDalleUrl='data:image/png;base64,'+data.b64_json;
     } else {
