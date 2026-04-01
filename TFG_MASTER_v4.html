@@ -704,7 +704,29 @@ function agSt(id,msg,cls){const e=document.getElementById(id);if(!e)return;e.tex
 function agShow(id){const e=document.getElementById(id);if(e)e.classList.remove('ag-hidden');}
 function agHide(id){const e=document.getElementById(id);if(e)e.classList.add('ag-hidden');}
 function agSelPT(el,t){document.querySelectorAll('.ag-pt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');agPostType=t;const fi=document.getElementById('ag-fiv');if(fi){t==='feature_highlight'?fi.classList.remove('ag-hidden'):fi.classList.add('ag-hidden');}}
-function agDP(r){return `Realistic food photograph taken with a DSLR camera, ${r.name}. ${r.image_description||''}. Shot on a real kitchen counter or wooden cutting board, natural window light, slight shadows, real textures visible on the food, imperfect plating like a real home-cooked meal styled for a fitness nutrition blog. The food must look completely real and appetizing, NOT artificial or AI-generated. Real depth of field with slight bokeh background, granite or marble countertop, casual but clean presentation. No text, no watermarks, no logos, no impossible lighting. Photo-realistic, editorial food photography style, 50mm lens, f/2.8, shot from 45-degree angle or slightly overhead.`;}
+function agDP(r){
+  const desc=r.image_description||'';
+  return `Photo-edit and retouch this real dish for a professional fitness nutrition recipe book. The dish is: ${r.name}.
+
+IMPORTANT — This is NOT about creating food from scratch. Imagine you have the original photo of this real home-cooked meal and you are using Photoshop to professionally retouch it:
+
+THE FOOD: Keep the exact same food, exact same ingredients, exact same textures, exact same cooking style. The food looks real because it IS real — natural browning, real grease, imperfect cuts, visible seasoning. ${desc}
+
+WHAT TO IMPROVE (like a photo editor):
+- Swap the plate/surface: use a clean white ceramic plate, a rustic wooden cutting board, or a simple bowl — whatever fits the dish
+- Fix the lighting: soft natural window light from one side, subtle shadows, no harsh flash
+- Improve the angle: overhead flat-lay or 45-degree, whichever shows the dish better
+- Clean the background: granite countertop, marble surface, or wooden table with a linen napkin or fork casually placed nearby
+- Color-correct: natural true-to-life colors, slightly warm tone, NOT oversaturated
+
+CRITICAL RULES:
+- The food must look REAL and HOME-COOKED, not like a 3D render or AI illustration
+- Keep natural imperfections in the food: uneven browning, slight char marks, drips, messy edges
+- NO perfect symmetry in food arrangement
+- NO impossible studio lighting from multiple angles
+- NO text, watermarks, or logos
+- The final image should be indistinguishable from a real DSLR photograph taken by a food blogger`;
+}
 
 // Load categories dynamically on recipe tab activation
 async function agLoadCategories(){
