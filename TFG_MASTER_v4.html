@@ -472,7 +472,7 @@ function renderAgents(){
       <div class="ag-hcard" onclick="agTab('recipes')">
         <div style="font-size:24px;margin-bottom:8px">🍽️</div>
         <div style="font-size:13px;font-weight:600;color:#fff">Recipe Agent</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Link → receta → porciones → DALL-E → subir a la web</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Link → receta → porciones → GPT-4o foto → subir a la web</div>
       </div>
       <div class="ag-hcard" onclick="agTab('instagram')">
         <div style="font-size:24px;margin-bottom:8px">📱</div>
@@ -522,7 +522,7 @@ function renderAgents(){
         </div>
         <div style="flex:1;">
           <div style="font-size:12px;color:var(--t2);font-weight:500;">Foto del platillo original</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:3px;line-height:1.4;">DALL-E la perfeccionará según tus instrucciones</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px;line-height:1.4;">GPT-4o la perfeccionará según tus instrucciones</div>
           <button class="ag-btn ag-btn-sm" style="margin-top:6px;" onclick="document.getElementById('ag-fi-early').click()">Subir foto</button>
         </div>
       </div>
@@ -595,7 +595,7 @@ function renderAgents(){
       <div class="ag-lbl">Step 03 — Imagen</div>
       <div class="ag-title">Genera o sube la foto</div>
       <!-- Editable DALL-E prompt -->
-      <span class="ag-lbl-sm">Prompt DALL-E (editable)</span>
+      <span class="ag-lbl-sm">Prompt GPT-4o (editable)</span>
       <textarea class="ag-inp" id="ag-dalle-prompt" style="min-height:100px;font-size:11px;line-height:1.5;margin-top:4px;"></textarea>
       <!-- Image area -->
       <div class="ag-img2" style="margin-top:10px;">
@@ -603,13 +603,13 @@ function renderAgents(){
           <img id="ag-fp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
           <div id="ag-upzone" style="border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px;">Sin foto</div>
         </div>
-        <div class="ag-slot"><div class="ag-img-l">Versión DALL-E</div>
+        <div class="ag-slot"><div class="ag-img-l">Versión GPT-4o</div>
           <div id="ag-dh" style="border:1px dashed rgba(255,255,255,0.15);border-radius:8px;height:170px;display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:13px;display:none;">Generando...</div>
           <img id="ag-dp" style="width:100%;height:170px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:none;" />
         </div>
       </div>
       <div class="ag-row" style="margin-top:10px;">
-        <button class="ag-btn ag-btn-red" id="ag-gb" onclick="agGenImg()">Generar con DALL-E</button>
+        <button class="ag-btn ag-btn-red" id="ag-gb" onclick="agGenImg()">Generar con GPT-4o</button>
         <button class="ag-btn ag-btn-sm" onclick="document.getElementById('ag-fi-photo').click()">Subir mi foto</button>
       </div>
       <input type="file" id="ag-fi-photo" accept="image/*" style="display:none;" onchange="agPhoto(event)" />
@@ -989,7 +989,7 @@ function agPhoto(e){
     document.getElementById('ag-fp').src=ev.target.result;
     document.getElementById('ag-fp').style.display='block';
     document.getElementById('ag-upzone').style.display='none';
-    agShow('ag-gb');agSt('ag-ps','Foto lista. Haz clic en Generar con DALL-E.','ag-ok');
+    agShow('ag-gb');agSt('ag-ps','Foto lista. Haz clic en Generar con GPT-4o.','ag-ok');
   };reader.readAsDataURL(file);
 }
 
@@ -1000,7 +1000,7 @@ async function agGenImg(){
   document.getElementById('ag-dp').style.display='none';
   agHide('ag-img-actions');
   const hasPhoto=!!agEarlyPhotoData;
-  agSt('ag-ps',hasPhoto?'Cargando referencias del catálogo + editando foto...':'Generando imagen con DALL-E 3...','ag-loading');
+  agSt('ag-ps',hasPhoto?'Cargando referencias del catálogo + generando con GPT-4o...':'Generando imagen con DALL-E 3...','ag-loading');
   try{
     const prompt=document.getElementById('ag-dalle-prompt').value.trim()||agDP(agRData);
     const body={prompt:prompt};
@@ -1015,7 +1015,7 @@ async function agGenImg(){
         if(catData.images&&catData.images.length>0){
           body.referenceImages=catData.images;
           console.log('Loaded',catData.images.length,'catalog reference images');
-          agSt('ag-ps',`Generando con ${catData.images.length} fotos de referencia + tu foto original...`,'ag-loading');
+          agSt('ag-ps',`GPT-4o generando con ${catData.images.length} refs del catálogo + tu foto...`,'ag-loading');
         }
       }catch(catErr){console.log('Could not load catalog refs:',catErr.message);}
     }
@@ -1051,7 +1051,7 @@ function agShowApprove(){
       </div>
     </div>
     <div style="font-size:12px;color:var(--t3);">${ingCount} ingredientes · ${stepCount} pasos</div>
-    ${agDalleUrl?'<div style="color:var(--green);font-size:12px;margin-top:4px;">✓ Imagen DALL-E lista</div>':'<div style="color:var(--amber);font-size:12px;margin-top:4px;">⚠ Sin imagen — se creará sin foto</div>'}
+    ${agDalleUrl?'<div style="color:var(--green);font-size:12px;margin-top:4px;">✓ Imagen GPT-4o lista</div>':'<div style="color:var(--amber);font-size:12px;margin-top:4px;">⚠ Sin imagen — se creará sin foto</div>'}
   `;
 }
 
