@@ -50,22 +50,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: Get CSRF token from admin
+    // Build cookie string with both variants
+    let activeCookie = `__Secure-next-auth.session-token=${sessionToken}; next-auth.session-token=${sessionToken}`;
+
+    // Step 1: Get CSRF token from admin (and capture rotated session cookie)
     const csrfRes = await fetch(`${adminUrl}/api/auth/csrf`, {
       headers: {
-        'Cookie': `__Secure-next-auth.session-token=${sessionToken}`,
+        'Cookie': activeCookie,
         'User-Agent': 'TFG-Agent/1.0'
-      }
+      },
+      redirect: 'manual'
     });
+
+    // Capture any Set-Cookie headers (NextAuth rotates the session token)
+    const setCookies = csrfRes.headers.getSetCookie ? csrfRes.headers.getSetCookie() : [];
+    for (const sc of setCookies) {
+      const match = sc.match(/__Secure-next-auth\.session-token=([^;]+)/);
+      if (match) {
+        activeCookie = `__Secure-next-auth.session-token=${match[1]}; next-auth.session-token=${match[1]}`;
+        console.log('[create-recipe] Captured rotated session token');
+      }
+    }
+
     const csrfText = await csrfRes.text();
     let csrfData;
     try { csrfData = JSON.parse(csrfText); } catch(e) {
-      return res.status(401).json({ error: 'Admin auth failed — session token may be expired. Got HTML instead of JSON.', hint: 'Update TFG_SESSION_TOKEN in Vercel env vars' });
+      return res.status(401).json({ error: 'Admin auth failed — session token may be expired.', hint: 'Update TFG_SESSION_TOKEN in Vercel env vars', preview: csrfText.substring(0, 200) });
     }
     const csrfToken = csrfData.csrfToken;
     if (!csrfToken) {
       return res.status(401).json({ error: 'No CSRF token returned — session may be expired', data: csrfData });
     }
+    console.log('[create-recipe] Got CSRF token OK');
 
     // Step 2: Get image from data URL (base64) or download from external URL
     let imageBlob = null;
@@ -163,16 +179,18 @@ export default async function handler(req, res) {
       bodyBuffer = Buffer.from(textParts + `--${boundary}--\r\n`, 'utf-8');
     }
 
-    // Step 4: POST to admin API
+    // Step 4: POST to admin API (using rotated cookie from CSRF step)
+    console.log('[create-recipe] POSTing to admin with image:', !!imageBlob, 'body size:', bodyBuffer.length);
     const createRes = await fetch(`${adminUrl}/api/admin/nutrition`, {
       method: 'POST',
       headers: {
-        'Cookie': `__Secure-next-auth.session-token=${sessionToken}`,
+        'Cookie': activeCookie,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
         'User-Agent': 'TFG-Agent/1.0',
         'x-csrf-token': csrfToken
       },
-      body: bodyBuffer
+      body: bodyBuffer,
+      redirect: 'manual'
     });
 
     const resultText = await createRes.text();
