@@ -1093,9 +1093,11 @@ async function agApprove(){
     };
 
     const resp=await fetch('/api/create-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const result=await resp.json();
+    const respText=await resp.text();
+    let result;
+    try{result=JSON.parse(respText);}catch(e){throw new Error('Server returned non-JSON (status '+resp.status+'): '+respText.substring(0,150));}
 
-    if(result.error){throw new Error(result.error);}
+    if(result.error){throw new Error(result.error+(result.hint?' — '+result.hint:''));}
 
     // Success!
     agSt('ag-as','','');

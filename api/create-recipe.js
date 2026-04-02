@@ -1,7 +1,12 @@
 // /api/create-recipe.js
 // Creates a recipe in the TFG admin panel via FormData POST
-// Also handles: fetching the DALL-E image and uploading it as a file
+// Also handles: base64 data URL images and external image URLs
 // Env vars required: TFG_ADMIN_URL, TFG_SESSION_TOKEN
+
+// Allow large payloads (base64 images can be 3MB+)
+export const config = {
+  api: { bodyParser: { sizeLimit: '10mb' } }
+};
 
 export default async function handler(req, res) {
   // CORS headers
@@ -52,29 +57,46 @@ export default async function handler(req, res) {
         'User-Agent': 'TFG-Agent/1.0'
       }
     });
-    const csrfData = await csrfRes.json();
+    const csrfText = await csrfRes.text();
+    let csrfData;
+    try { csrfData = JSON.parse(csrfText); } catch(e) {
+      return res.status(401).json({ error: 'Admin auth failed — session token may be expired. Got HTML instead of JSON.', hint: 'Update TFG_SESSION_TOKEN in Vercel env vars' });
+    }
     const csrfToken = csrfData.csrfToken;
+    if (!csrfToken) {
+      return res.status(401).json({ error: 'No CSRF token returned — session may be expired', data: csrfData });
+    }
 
-    // Step 2: Download image from DALL-E URL if provided
+    // Step 2: Get image from data URL (base64) or download from external URL
     let imageBlob = null;
     let imageFilename = 'recipe.jpg';
 
     if (image_url) {
       try {
-        const imgRes = await fetch(image_url);
-        if (imgRes.ok) {
-          const arrayBuffer = await imgRes.arrayBuffer();
-          imageBlob = Buffer.from(arrayBuffer);
-
-          // Determine extension from content-type
-          const contentType = imgRes.headers.get('content-type') || 'image/png';
-          const ext = contentType.includes('png') ? 'png' :
-                      contentType.includes('webp') ? 'webp' :
-                      contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
-          imageFilename = `${recipe_name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}.${ext}`;
+        if (image_url.startsWith('data:')) {
+          // Handle base64 data URL directly — no fetch needed
+          const match = image_url.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+          if (match) {
+            const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+            imageBlob = Buffer.from(match[2], 'base64');
+            imageFilename = `${recipe_name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}.${ext}`;
+            console.log(`[create-recipe] Decoded base64 image: ${imageBlob.length} bytes, ${ext}`);
+          }
+        } else {
+          // External URL — download it
+          const imgRes = await fetch(image_url);
+          if (imgRes.ok) {
+            const arrayBuffer = await imgRes.arrayBuffer();
+            imageBlob = Buffer.from(arrayBuffer);
+            const contentType = imgRes.headers.get('content-type') || 'image/png';
+            const ext = contentType.includes('png') ? 'png' :
+                        contentType.includes('webp') ? 'webp' :
+                        contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+            imageFilename = `${recipe_name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}.${ext}`;
+          }
         }
       } catch (imgErr) {
-        console.error('Failed to download image:', imgErr.message);
+        console.error('[create-recipe] Failed to process image:', imgErr.message);
         // Continue without image — admin form allows saving without image
       }
     }
@@ -153,7 +175,15 @@ export default async function handler(req, res) {
       body: bodyBuffer
     });
 
-    const result = await createRes.json();
+    const resultText = await createRes.text();
+    let result;
+    try { result = JSON.parse(resultText); } catch(e) {
+      return res.status(createRes.status || 500).json({
+        error: 'Admin returned non-JSON response',
+        status: createRes.status,
+        preview: resultText.substring(0, 300)
+      });
+    }
 
     if (!createRes.ok) {
       return res.status(createRes.status).json({
