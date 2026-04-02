@@ -291,10 +291,18 @@ let currentUser = null;
 let currentView = 'gantt';
 let activeArea = 'all';
 let agRData = null, agDalleUrl = null, agPostType = 'launch_announcement';
-// OPENAI_KEY removed — now server-side via /api/generate-image
-let agRDataES = null; // Spanish version of recipe data
-let agDallePrompt = ''; // Editable DALL-E prompt
-let agCategories = []; // Dynamic categories from admin
+let agRDataES = null; // Spanish version (kept for internal use)
+let agDallePrompt = '';
+let agCategories = [];
+let agSelectedLang = 'en'; // Language selected in Step 01
+
+function agSelectLang(lang){
+  agSelectedLang=lang;
+  document.getElementById('ag-lang-sel-en').style.background=lang==='en'?'var(--red)':'';
+  document.getElementById('ag-lang-sel-en').style.color=lang==='en'?'#fff':'';
+  document.getElementById('ag-lang-sel-es').style.background=lang==='es'?'var(--red)':'';
+  document.getElementById('ag-lang-sel-es').style.color=lang==='es'?'#fff':'';
+}
 
 // ═══ AUTH ═══
 function doLogin(){
@@ -499,6 +507,12 @@ function renderAgents(){
       <div class="ag-lbl">Step 01 — Link + Foto + Instrucciones</div>
       <div class="ag-title">Configura tu receta</div>
 
+      <span class="ag-lbl-sm">Idioma de la receta</span>
+      <div style="display:flex;gap:8px;margin-bottom:12px;margin-top:4px;">
+        <button class="ag-btn ag-btn-sm" id="ag-lang-sel-en" onclick="agSelectLang('en')" style="background:var(--red);color:#fff;">English</button>
+        <button class="ag-btn ag-btn-sm" id="ag-lang-sel-es" onclick="agSelectLang('es')">Español</button>
+      </div>
+
       <span class="ag-lbl-sm">Link de la receta</span>
       <input class="ag-inp" type="text" id="ag-url" placeholder="https://... (web, Instagram, TikTok, YouTube)" />
 
@@ -546,11 +560,7 @@ function renderAgents(){
     <!-- STEP 02: RECIPE PREVIEW (English + Spanish, editable) -->
     <div class="ag-card ag-hidden" id="ag-r2">
       <div class="ag-lbl">Step 02 — Receta Extraída</div>
-      <!-- Language tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="ag-btn ag-btn-sm" id="ag-lang-en" onclick="agLang('en')" style="background:var(--red);color:#fff;">English</button>
-        <button class="ag-btn ag-btn-sm" id="ag-lang-es" onclick="agLang('es')">Español</button>
-      </div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px;" id="ag-lang-badge"></div>
       <!-- Editable name -->
       <input class="ag-inp" type="text" id="ag-rname" style="font-size:18px;font-weight:700;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;margin-bottom:8px;" />
       <!-- Editable macros -->
@@ -614,7 +624,7 @@ function renderAgents(){
       </div>
       <input type="file" id="ag-fi-photo" accept="image/*" style="display:none;" onchange="agPhoto(event)" />
       <div class="ag-row ag-hidden" id="ag-img-actions" style="margin-top:8px;">
-        <button class="ag-btn ag-btn-red" onclick="agShowApprove();agShow('ag-r4');">Usar esta imagen →</button>
+        <button class="ag-btn ag-btn-red" onclick="agShowApprove().then(()=>agShow('ag-r4'));">Usar esta imagen →</button>
         <button class="ag-btn ag-btn-sm" onclick="agGenImg()">Regenerar</button>
         <button class="ag-btn ag-btn-sm" onclick="agHide('ag-img-actions');document.getElementById('ag-dp').style.display='none';document.getElementById('ag-dh').style.display='none';">Editar prompt</button>
       </div>
@@ -752,17 +762,8 @@ async function agLoadCategories(){
   }
 }
 
-// Language toggle EN/ES
+// Language state (set by agSelectLang in Step 01)
 let agCurrentLang='en';
-function agLang(lang){
-  agCurrentLang=lang;
-  document.getElementById('ag-lang-en').style.background=lang==='en'?'var(--red)':'';
-  document.getElementById('ag-lang-en').style.color=lang==='en'?'#fff':'';
-  document.getElementById('ag-lang-es').style.background=lang==='es'?'var(--red)':'';
-  document.getElementById('ag-lang-es').style.color=lang==='es'?'#fff':'';
-  const r=lang==='es'?agRDataES:agRData;
-  if(r)agFillEditFields(r);
-}
 
 // Fill edit fields from recipe data
 function agFillEditFields(r){
@@ -790,7 +791,7 @@ function agFillEditFields(r){
 // Save edits back to agRData
 function agSaveEdits(){
   if(!agRData)return;
-  const r=agCurrentLang==='es'?agRDataES:agRData;
+  const r=agRData;
   r.name=document.getElementById('ag-rname').value;
   r.calories=parseFloat(document.getElementById('ag-e-cal').value)||0;
   r.protein=parseFloat(document.getElementById('ag-e-pro').value)||0;
@@ -958,7 +959,11 @@ async function agFetch(){
   agSt('ag-fs','Analizando receta...','ag-loading');
   try{
     const instrNote=instructions?`\n\nUSER INSTRUCTIONS (apply these changes to the recipe and photo): "${instructions}"\nFor photo: extract image style preferences from the instructions and use them in image_description.`:'';
-    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Extract recipe from: ${url}\nApply servings: ${srv}, category: ${cat}.${instrNote}\n\nReturn ONLY valid JSON with TWO versions — English and Spanish. Be CONCISE — short ingredient lines, short step descriptions:\n{"en":{"name":"english name","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"name","items":["item adjusted for ${srv} serving(s)"]}],"instructions":[{"section":"name","steps":["step"]}],"notes":["note"],"image_description":"changes applied to the photo"},"es":{"name":"nombre en español","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"nombre seccion","items":["ingrediente ajustado para ${srv} porcion(es)"]}],"instructions":[{"section":"nombre seccion","steps":["paso"]}],"notes":["nota"],"image_description":"same as english version"}}`}]})});
+    const langLabel=agSelectedLang==='es'?'Spanish':'English';
+    const langExample=agSelectedLang==='es'
+      ?`{"name":"nombre en español","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"nombre seccion","items":["ingrediente ajustado para ${srv} porcion(es)"]}],"instructions":[{"section":"nombre seccion","steps":["paso"]}],"notes":["nota"],"image_description":"description of photo changes in english"}`
+      :`{"name":"english name","servings":${srv},"calories":number,"protein":number,"fat":number,"carbs":number,"prep_time":number,"category":"${cat}","ingredients":[{"section":"name","items":["item adjusted for ${srv} serving(s)"]}],"instructions":[{"section":"name","steps":["step"]}],"notes":["note"],"image_description":"changes applied to the photo"}`;
+    const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Extract recipe from: ${url}\nApply servings: ${srv}, category: ${cat}.${instrNote}\n\nReturn ONLY valid JSON in ${langLabel}. Be CONCISE — short ingredient lines, short step descriptions:\n${langExample}`}]})});
     const data=await resp.json();
     console.log('Extract API response:',JSON.stringify(data).substring(0,500));
     if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
@@ -966,21 +971,19 @@ async function agFetch(){
     const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
     const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('No se pudo extraer la receta.');
     const parsed=JSON.parse(m[0]);
-    // Handle both formats: {en:{...},es:{...}} or flat {name:...}
+    // Store as the selected language data
     if(parsed.en){agRData=parsed.en;agRDataES=parsed.es;}
     else{agRData=parsed;agRDataES=null;}
     agShowR(agRData);
-    agSt('ag-fs','✓ Receta extraída — revisa y edita antes de la imagen','ag-ok');
+    agSt('ag-fs','✓ Receta extraída en '+langLabel+' — revisa y edita antes de la imagen','ag-ok');
   }catch(e){agSt('ag-fs',e.message,'ag-err');}
   document.getElementById('ag-fbtn').disabled=false;
 }
 
 function agShowR(r){
-  agCurrentLang='en';
-  document.getElementById('ag-lang-en').style.background='var(--red)';
-  document.getElementById('ag-lang-en').style.color='#fff';
-  document.getElementById('ag-lang-es').style.background='';
-  document.getElementById('ag-lang-es').style.color='';
+  agCurrentLang=agSelectedLang;
+  const badge=document.getElementById('ag-lang-badge');
+  if(badge)badge.innerHTML=agSelectedLang==='es'?'🇲🇽 Receta en <strong>Español</strong>':'🇺🇸 Recipe in <strong>English</strong>';
   agFillEditFields(r);
   agShow('ag-r2');
 }
@@ -1037,9 +1040,36 @@ async function agGenImg(){
   if(dhbtn)dhbtn.disabled=false;
 }
 
-function agShowApprove(){
+async function agShowApprove(){
   if(!agRData)return;
   agSaveEdits();
+
+  // If recipe was extracted in Spanish, translate to English for publishing
+  if(agSelectedLang==='es'){
+    agSt('ag-as','Traduciendo receta a inglés para publicar...','ag-loading');
+    try{
+      const esData=JSON.parse(JSON.stringify(agRData));
+      const resp=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:[{role:'user',content:`Translate this recipe from Spanish to English. Keep exact same JSON structure, same numbers, same quantities. ONLY translate text fields (name, section names, ingredient items, step descriptions, notes). Return ONLY valid JSON:\n${JSON.stringify(esData)}`}]})});
+      const data=await resp.json();
+      if(data.content&&Array.isArray(data.content)){
+        const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+        const m=text.match(/\{[\s\S]*\}/);
+        if(m){
+          const translated=JSON.parse(m[0]);
+          // Preserve numeric values from original
+          translated.calories=esData.calories;translated.protein=esData.protein;
+          translated.fat=esData.fat;translated.carbs=esData.carbs;
+          translated.prep_time=esData.prep_time;translated.servings=esData.servings;
+          translated.category=esData.category;
+          agRData=translated;
+          agSt('ag-as','✓ Traducida a inglés','ag-ok');
+        }
+      }
+    }catch(e){console.warn('Translation failed, publishing in Spanish:',e);agSt('ag-as','⚠ No se pudo traducir — se publicará en español','ag-err');}
+  }
+
+  // Update edit fields with (possibly translated) English data
+  agFillEditFields(agRData);
   const r=agRData;
   let ingCount=0;r.ingredients.forEach(s=>ingCount+=s.items.length);
   let stepCount=0;r.instructions.forEach(s=>stepCount+=s.steps.length);
@@ -1048,13 +1078,13 @@ function agShowApprove(){
       ${agDalleUrl?`<img src="${agDalleUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--border);flex-shrink:0;"/>`:''}
       <div>
         <strong style="color:#fff;font-size:16px;">${r.name}</strong>
-        ${agRDataES?`<br><span style="color:var(--t3);font-size:12px;">ES: ${agRDataES.name}</span>`:''}
         <br><span style="color:var(--t2);font-size:13px;">${Math.round(r.calories)} kcal · ${Math.round(r.protein)}g pro · ${Math.round(r.fat)}g fat · ${Math.round(r.carbs)}g carb</span>
         <br><span style="color:var(--t3);font-size:12px;">${r.category} · ${r.prep_time}min · ${r.servings} porción(es)</span>
       </div>
     </div>
     <div style="font-size:12px;color:var(--t3);">${ingCount} ingredientes · ${stepCount} pasos</div>
-    ${agDalleUrl?'<div style="color:var(--green);font-size:12px;margin-top:4px;">✓ Imagen GPT-4o lista</div>':'<div style="color:var(--amber);font-size:12px;margin-top:4px;">⚠ Sin imagen — se creará sin foto</div>'}
+    ${agDalleUrl?'<div style="color:var(--green);font-size:12px;margin-top:4px;">✓ Imagen GPT-4o lista</div>':'<div style="color:var(--amber);font-size:12px;margin-top:4px;">⚠ Sin imagen — placeholder</div>'}
+    <div style="color:var(--green);font-size:12px;margin-top:4px;">🇺🇸 Se publicará en inglés</div>
   `;
 }
 
@@ -1070,7 +1100,6 @@ async function agApprove(){
     // Find category UUID
     const catSel=document.getElementById('ag-e-cat');
     let catId=catSel.value;
-    // If it's a name, find the ID from agCategories
     const catMatch=agCategories.find(c=>c.name===catId||c.id===catId);
     if(catMatch)catId=catMatch.id;
 
@@ -1078,10 +1107,30 @@ async function agApprove(){
     const ingredients=r.ingredients.map(s=>JSON.stringify({title:s.section,items:s.items}));
     const instructions=r.instructions.map(s=>JSON.stringify({title:s.section,steps:s.steps}));
 
-    // Send recipe WITHOUT image (admin has 1MB limit) — image downloads separately
+    // Compress image to JPEG (<500KB) for admin upload
+    agSt('ag-as','Comprimiendo imagen...','ag-loading');
+    let compressedImage='';
+    if(agDalleUrl){
+      try{
+        const img=new Image();
+        await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=agDalleUrl;});
+        const cv=document.createElement('canvas');
+        cv.width=800;cv.height=800;
+        cv.getContext('2d').drawImage(img,0,0,800,800);
+        compressedImage=cv.toDataURL('image/jpeg',0.6);
+        console.log('Compressed:',agDalleUrl.length,'→',compressedImage.length);
+      }catch(e){console.warn('Compress failed:',e);}
+    }
+    // Fallback: tiny placeholder if no image
+    if(!compressedImage){
+      const cv=document.createElement('canvas');cv.width=100;cv.height=100;
+      cv.getContext('2d').fillStyle='#333';cv.getContext('2d').fillRect(0,0,100,100);
+      compressedImage=cv.toDataURL('image/jpeg',0.5);
+    }
+
     const payload={
       recipe_name:r.name,
-      recipe_categories:catId,
+      recipe_categories:JSON.stringify([catId]),
       recipe_preptime:r.prep_time,
       recipe_serving:r.servings,
       recipe_calories:Math.round(r.calories),
@@ -1090,7 +1139,7 @@ async function agApprove(){
       recipe_carbs:Math.round(r.carbs),
       ingredients:ingredients,
       instructions:instructions,
-      image_url:''
+      image_url:compressedImage
     };
 
     const resp=await fetch('/api/create-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -1099,6 +1148,7 @@ async function agApprove(){
     try{result=JSON.parse(respText);}catch(e){throw new Error('Server returned non-JSON (status '+resp.status+'): '+respText.substring(0,150));}
 
     if(result.error){throw new Error(result.error+(result.hint?' — '+result.hint:''));}
+    if(result.data&&result.data.status&&result.data.status!==200){throw new Error('Admin: '+(result.data.error||result.data.message||'Unknown error'));}
 
     // Success!
     agSt('ag-as','','');
@@ -1117,7 +1167,7 @@ async function agApprove(){
 }
 
 function agReset(){
-  agRData=null;agRDataES=null;agDalleUrl=null;agDallePrompt='';agEarlyPhotoData=null;agCurrentLang='en';
+  agRData=null;agRDataES=null;agDalleUrl=null;agDallePrompt='';agEarlyPhotoData=null;agCurrentLang='en';agSelectedLang='en';agSelectLang('en');
   ['ag-r2','ag-r3','ag-r4','ag-rb','ag-success','ag-img-actions'].forEach(agHide);
   document.getElementById('ag-url').value='';
   const fp2=document.getElementById('ag-fp');if(fp2)fp2.style.display='none';
