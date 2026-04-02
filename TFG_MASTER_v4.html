@@ -623,6 +623,11 @@ function renderAgents(){
         <button class="ag-btn ag-btn-sm" onclick="document.getElementById('ag-fi-photo').click()">Subir mi foto</button>
       </div>
       <input type="file" id="ag-fi-photo" accept="image/*" style="display:none;" onchange="agPhoto(event)" />
+      <!-- Use uploaded photo directly (skip GPT-4o) -->
+      <div class="ag-row ag-hidden" id="ag-use-photo-btn" style="margin-top:8px;">
+        <button class="ag-btn ag-btn-red" onclick="agUseMyPhoto()">Usar mi foto →</button>
+      </div>
+      <!-- After GPT-4o generation -->
       <div class="ag-row ag-hidden" id="ag-img-actions" style="margin-top:8px;">
         <button class="ag-btn ag-btn-red" onclick="agShowApprove().then(()=>agShow('ag-r4'));">Usar esta imagen →</button>
         <button class="ag-btn ag-btn-sm" onclick="agGenImg()">Regenerar</button>
@@ -992,11 +997,25 @@ function agPhoto(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=ev=>{
-    document.getElementById('ag-fp').src=ev.target.result;
+    const dataUrl=ev.target.result;
+    document.getElementById('ag-fp').src=dataUrl;
     document.getElementById('ag-fp').style.display='block';
     document.getElementById('ag-upzone').style.display='none';
-    agShow('ag-gb');agSt('ag-ps','Foto lista. Haz clic en Generar con GPT-4o.','ag-ok');
+    agEarlyPhotoData=dataUrl;
+    // Show both options: use photo as-is OR generate with GPT-4o
+    agShow('ag-use-photo-btn');
+    agShow('ag-gb');
+    agSt('ag-ps','Foto cargada. Puedes usarla directamente o mejorarla con GPT-4o.','ag-ok');
   };reader.readAsDataURL(file);
+}
+
+// Use uploaded photo directly without GPT-4o
+function agUseMyPhoto(){
+  if(!agEarlyPhotoData)return agSt('ag-ps','Primero sube una foto.','ag-err');
+  agDalleUrl=agEarlyPhotoData;
+  agHide('ag-use-photo-btn');
+  agSt('ag-ps','✓ Tu foto será usada para la receta.','ag-ok');
+  agShowApprove().then(()=>agShow('ag-r4'));
 }
 
 async function agGenImg(){
@@ -1006,7 +1025,7 @@ async function agGenImg(){
   document.getElementById('ag-dp').style.display='none';
   agHide('ag-img-actions');
   const hasPhoto=!!agEarlyPhotoData;
-  agSt('ag-ps',hasPhoto?'Cargando referencias del catálogo + generando con GPT-4o...':'Generando imagen con DALL-E 3...','ag-loading');
+  agSt('ag-ps',hasPhoto?'Cargando referencias del catálogo + generando con GPT-4o...':'Generando imagen con GPT-4o...','ag-loading');
   try{
     const prompt=document.getElementById('ag-dalle-prompt').value.trim()||agDP(agRData);
     const body={prompt:prompt};
@@ -1168,7 +1187,7 @@ async function agApprove(){
 
 function agReset(){
   agRData=null;agRDataES=null;agDalleUrl=null;agDallePrompt='';agEarlyPhotoData=null;agCurrentLang='en';agSelectedLang='en';agSelectLang('en');
-  ['ag-r2','ag-r3','ag-r4','ag-rb','ag-success','ag-img-actions'].forEach(agHide);
+  ['ag-r2','ag-r3','ag-r4','ag-rb','ag-success','ag-img-actions','ag-use-photo-btn'].forEach(agHide);
   document.getElementById('ag-url').value='';
   const fp2=document.getElementById('ag-fp');if(fp2)fp2.style.display='none';
   const uz=document.getElementById('ag-upzone');if(uz)uz.style.display='flex';
