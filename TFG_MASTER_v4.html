@@ -1078,23 +1078,7 @@ async function agApprove(){
     const ingredients=r.ingredients.map(s=>JSON.stringify({title:s.section,items:s.items}));
     const instructions=r.instructions.map(s=>JSON.stringify({title:s.section,steps:s.steps}));
 
-    // Compress image to JPEG (<800KB) before sending — admin has 1MB body limit
-    let compressedImage='';
-    if(agDalleUrl){
-      try{
-        const img=new Image();
-        await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=agDalleUrl;});
-        const cv=document.createElement('canvas');
-        const maxDim=1024;
-        let w=img.width,h=img.height;
-        if(w>maxDim||h>maxDim){const s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
-        cv.width=w;cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        compressedImage=cv.toDataURL('image/jpeg',0.75);
-        console.log('Image compressed:',agDalleUrl.length,'→',compressedImage.length,'bytes');
-      }catch(e){console.warn('Image compression failed, sending original:',e);compressedImage=agDalleUrl;}
-    }
-
+    // Send recipe WITHOUT image (admin has 1MB limit) — image downloads separately
     const payload={
       recipe_name:r.name,
       recipe_categories:catId,
@@ -1106,7 +1090,7 @@ async function agApprove(){
       recipe_carbs:Math.round(r.carbs),
       ingredients:ingredients,
       instructions:instructions,
-      image_url:compressedImage
+      image_url:''
     };
 
     const resp=await fetch('/api/create-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
